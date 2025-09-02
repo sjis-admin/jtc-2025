@@ -1,0 +1,475 @@
+<!-- templates/admin/reports.html -->
+{% extends 'base.html' %}
+{% load math_filters %}
+
+{% block title %}Reports & Analytics - Josephite Tech Club{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="flex items-center justify-between p-6">
+            <h1 class="text-3xl font-bold text-gray-800">
+                <i class="fas fa-chart-bar text-primary mr-2"></i>
+                Reports & Analytics
+            </h1>
+            <div class="flex items-center space-x-4">
+                <a href="{% url 'print_detailed_report' %}" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors">
+                    <i class="fas fa-print mr-2"></i>Print Report
+                </a>
+                <button onclick="exportToCSV()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                    <i class="fas fa-download mr-2"></i>Export CSV
+                </button>
+                <a href="{% url 'admin_dashboard' %}" class="text-primary hover:text-blue-700 transition-colors">
+                    <i class="fas fa-arrow-left mr-1"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="bg-white border-b">
+        <nav class="flex space-x-8 px-6">
+            <a href="{% url 'admin_dashboard' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-home mr-1"></i>Dashboard
+            </a>
+            <a href="{% url 'admin_students' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-users mr-1"></i>Students
+            </a>
+            <a href="{% url 'admin_payments' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-credit-card mr-1"></i>Payments
+            </a>
+            <a href="{% url 'admin_events' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-calendar mr-1"></i>Events
+            </a>
+            <a href="{% url 'admin_reports' %}" class="py-4 px-1 border-b-2 border-primary text-primary font-medium">
+                <i class="fas fa-chart-bar mr-1"></i>Reports
+            </a>
+            <a href="{% url 'admin_logs' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-history mr-1"></i>Logs
+            </a>
+        </nav>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-6">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm font-medium uppercase tracking-wide">Total Registrations</p>
+                    <p class="text-3xl font-bold">{{ total_registrations }}</p>
+                </div>
+                <div class="bg-white bg-opacity-20 rounded-full p-3">
+                    <i class="fas fa-users text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm font-medium uppercase tracking-wide">Paid Registrations</p>
+                    <p class="text-3xl font-bold">{{ paid_registrations }}</p>
+                </div>
+                <div class="bg-white bg-opacity-20 rounded-full p-3">
+                    <i class="fas fa-check-circle text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-purple-100 text-sm font-medium uppercase tracking-wide">Total Revenue</p>
+                    <p class="text-3xl font-bold">৳{{ total_revenue|floatformat:0 }}</p>
+                </div>
+                <div class="bg-white bg-opacity-20 rounded-full p-3">
+                    <i class="fas fa-money-bill-wave text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-yellow-100 text-sm font-medium uppercase tracking-wide">Pending Revenue</p>
+                    <p class="text-3xl font-bold">৳{{ pending_revenue|floatformat:0 }}</p>
+                </div>
+                <div class="bg-white bg-opacity-20 rounded-full p-3">
+                    <i class="fas fa-clock text-2xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts and Detailed Reports -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 px-6 pb-6">
+        <!-- Event-wise Performance -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    <i class="fas fa-trophy text-yellow-500 mr-2"></i>
+                    Event Performance
+                </h3>
+                <div class="text-sm text-gray-500">Registration & Revenue Analysis</div>
+            </div>
+            
+            <div class="space-y-4">
+                {% for event in event_breakdown %}
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="font-medium text-gray-900">{{ event.name }}</h4>
+                        <div class="flex items-center space-x-4">
+                            <span class="text-sm text-gray-600">{{ event.registrations }} registrations</span>
+                            <span class="text-sm font-semibold text-green-600">৳{{ event.revenue|default:0|floatformat:0 }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
+                        <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-500"
+                             style="width: {% if event.registrations and event_breakdown.0.registrations > 0 %}{% widthratio event.registrations event_breakdown.0.registrations 100 %}{% else %}0{% endif %}%;"></div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between text-xs text-gray-500">
+                        <span>Registration Rate: {% if event.registrations and total_registrations > 0 %}{% widthratio event.registrations total_registrations 100 %}{% else %}0{% endif %}%</span>
+                        <span>Avg per student: ৳{% if event.registrations > 0 %}{{ event.revenue|default:0|div:event.registrations|floatformat:0 }}{% else %}0{% endif %}</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-chart-bar text-4xl mb-3"></i>
+                    <p>No event data available</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- School-wise Distribution -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    <i class="fas fa-school text-blue-500 mr-2"></i>
+                    Top Participating Schools
+                </h3>
+                <div class="text-sm text-gray-500">Registration Distribution</div>
+            </div>
+            
+            <div class="space-y-3">
+                {% for school in school_breakdown %}
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div class="flex-1">
+                        <div class="font-medium text-gray-900 truncate">{{ school.school_college|truncatechars:30 }}</div>
+                        <div class="flex items-center space-x-4 mt-1">
+                            <span class="text-sm text-gray-600">Total: {{ school.count }}</span>
+                            <span class="text-sm text-green-600">Paid: {{ school.paid_count }}</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                            <div class="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-500"
+                                 style="width: {% if school.count and school_breakdown.0.count > 0 %}{% widthratio school.count school_breakdown.0.count 100 %}{% else %}0{% endif %}%;"></div>
+                        </div>
+                    </div>
+                    <div class="text-right ml-4">
+                        <div class="text-lg font-bold text-gray-700">{{ school.count }}</div>
+                        <div class="text-xs text-gray-500">
+                            {% if school.count > 0 %}{{ school.paid_count|percentage:school.count }}%{% else %}0%{% endif %} paid
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-school text-4xl mb-3"></i>
+                    <p>No school data available</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Grade-wise and Payment Method Analysis -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 px-6 pb-6">
+        <!-- Grade-wise Distribution -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    <i class="fas fa-layer-group text-indigo-500 mr-2"></i>
+                    Grade & Group Analysis
+                </h3>
+                <div class="text-sm text-gray-500">Student Distribution by Grade</div>
+            </div>
+            
+            <div class="space-y-4">
+                {% for grade in grade_breakdown %}
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 bg-indigo-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">
+                                {{ grade.group }}
+                            </div>
+                            <div>
+                                <div class="font-medium text-gray-900">Grade {{ grade.grade }}</div>
+                                <div class="text-xs text-gray-500">
+                                    Group {{ grade.group }} -
+                                    {% if grade.group == 'A' %}Grade 3-5
+                                    {% elif grade.group == 'B' %}Grade 6-8
+                                    {% elif grade.group == 'C' %}Grade 9-10
+                                    {% elif grade.group == 'D' %}Grade 11-12
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold text-indigo-600">{{ grade.count }}</div>
+                            <div class="text-xs text-gray-500">students</div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3 text-sm">
+                        <div class="bg-green-50 p-2 rounded text-center">
+                            <div class="font-semibold text-green-700">{{ grade.paid_count }}</div>
+                            <div class="text-green-600 text-xs">Paid</div>
+                        </div>
+                        <div class="bg-red-50 p-2 rounded text-center">
+                            <div class="font-semibold text-red-700">{{ grade.count|sub:grade.paid_count }}</div>
+                            <div class="text-red-600 text-xs">Pending</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <div class="flex items-center justify-between text-xs text-gray-600 mb-1">
+                            <span>Payment Rate</span>
+                            <span>{{ grade.paid_count|percentage:grade.count }}%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-gradient-to-r from-green-400 to-green-500 h-2 rounded-full transition-all duration-500"
+                                 style="width: {% if grade.count > 0 %}{% widthratio grade.paid_count grade.count 100 %}{% else %}0{% endif %}%;"></div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-graduation-cap text-4xl mb-3"></i>
+                    <p>No grade data available</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Payment Methods -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    <i class="fas fa-credit-card text-green-500 mr-2"></i>
+                    Payment Methods Analysis
+                </h3>
+                <div class="text-sm text-gray-500">Revenue by Payment Method</div>
+            </div>
+            
+            <div class="space-y-4">
+                {% for method in payment_method_breakdown %}
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center">
+                            {% if method.payment_method == 'BKASH' %}
+                                <div class="w-10 h-10 bg-pink-500 text-white rounded-full flex items-center justify-center mr-3">
+                                    <i class="fas fa-mobile-alt"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">bKash</div>
+                                    <div class="text-xs text-gray-500">Mobile Financial Service</div>
+                                </div>
+                            {% elif method.payment_method == 'ROCKET' %}
+                                <div class="w-10 h-10 bg-purple-500 text-white rounded-full flex items-center justify-center mr-3">
+                                    <i class="fas fa-rocket"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">Rocket</div>
+                                    <div class="text-xs text-gray-500">Mobile Financial Service</div>
+                                </div>
+                            {% elif method.payment_method == 'NAGAD' %}
+                                <div class="w-10 h-10 bg-orange-500 text-white rounded-full flex items-center justify-center mr-3">
+                                    <i class="fas fa-wallet"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">Nagad</div>
+                                    <div class="text-xs text-gray-500">Digital Financial Service</div>
+                                </div>
+                            {% elif method.payment_method == 'CARD' %}
+                                <div class="w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center mr-3">
+                                    <i class="fas fa-credit-card"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">Credit/Debit Card</div>
+                                    <div class="text-xs text-gray-500">Bank Cards</div>
+                                </div>
+                            {% else %}
+                                <div class="w-10 h-10 bg-gray-500 text-white rounded-full flex items-center justify-center mr-3">
+                                    <i class="fas fa-question"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">{{ method.payment_method|default:"Other" }}</div>
+                                    <div class="text-xs text-gray-500">Other Payment Method</div>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold text-gray-700">৳{{ method.total_amount|default:0|floatformat:0 }}</div>
+                            <div class="text-xs text-gray-500">{{ method.count }} transactions</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <div class="flex items-center justify-between text-xs text-gray-600 mb-1">
+                            <span>Share of total revenue</span>
+                            <span>{{ method.total_amount|percentage:total_revenue }}%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="h-2 rounded-full transition-all duration-500
+                                {% if method.payment_method == 'BKASH' %}bg-gradient-to-r from-pink-400 to-pink-500
+                                {% elif method.payment_method == 'ROCKET' %}bg-gradient-to-r from-purple-400 to-purple-500
+                                {% elif method.payment_method == 'NAGAD' %}bg-gradient-to-r from-orange-400 to-orange-500
+                                {% elif method.payment_method == 'CARD' %}bg-gradient-to-r from-blue-400 to-blue-500
+                                {% else %}bg-gradient-to-r from-gray-400 to-gray-500{% endif %}"
+                                 style="width: {% if total_revenue > 0 %}{% widthratio method.total_amount total_revenue 100 %}{% else %}0{% endif %}%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2 mt-3 text-xs">
+                        <div class="text-center">
+                            <div class="font-medium text-gray-700">Avg. Transaction</div>
+                            <div class="text-gray-600">৳{{ method.total_amount|div:method.count|floatformat:0 }}</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="font-medium text-gray-700">Market Share</div>
+                            <div class="text-gray-600">{{ method.total_amount|percentage:total_revenue }}%</div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-credit-card text-4xl mb-3"></i>
+                    <p>No payment method data available</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Tables for Export -->
+    <div class="bg-white rounded-xl shadow-lg mx-6 mb-6 overflow-hidden">
+        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">
+                <i class="fas fa-table text-gray-600 mr-2"></i>
+                Detailed Registration Report
+            </h3>
+            <p class="text-sm text-gray-600 mt-1">Complete breakdown for export and analysis</p>
+        </div>
+        
+        <!-- Summary Table -->
+        <div class="p-6">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200" id="reportTable">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metric</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pending</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Success Rate</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr class="bg-blue-50">
+                            <td class="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">Overall Registration</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ total_registrations }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">{{ paid_registrations }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium">{{ total_registrations|sub:paid_registrations }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {{ paid_registrations|percentage:total_registrations }}%
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">৳{{ total_revenue|floatformat:0 }}</td>
+                        </tr>
+                        
+                        {% for grade in grade_breakdown %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Grade {{ grade.grade }} (Group {{ grade.group }})</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ grade.count }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">{{ grade.paid_count }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">{{ grade.count|sub:grade.paid_count }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {{ grade.paid_count|percentage:grade.count }}%
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                ৳{{ grade.paid_count|mul:500|floatformat:0 }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer with Report Generation Info -->
+    <div class="bg-white border-t px-6 py-4 mx-6 mb-6 rounded-lg shadow-sm">
+        <div class="flex items-center justify-between text-sm text-gray-600">
+            <div class="flex items-center space-x-4">
+                <span>Report generated on: <span class="font-medium">{{ "now"|date:"M j, Y g:i A" }}</span></span>
+                <span>•</span>
+                <span>Data as of: <span class="font-medium">{{ "now"|date:"M j, Y g:i A" }}</span></span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span>Total Expected Revenue: <span class="font-medium text-blue-600">৳{{ total_revenue|add:pending_revenue|floatformat:0 }}</span></span>
+                <span>•</span>
+                <span>Collection Rate: <span class="font-medium text-green-600">
+                    {{ total_revenue|percentage:total_revenue|add:pending_revenue }}%
+                </span></span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function exportToCSV() {
+    window.location.href = "{% url 'export_detailed_report' %}";
+}
+
+// Print styling
+window.addEventListener('beforeprint', function() {
+    document.body.classList.add('print-mode');
+});
+
+window.addEventListener('afterprint', function() {
+    document.body.classList.remove('print-mode');
+});
+
+// Add print styles
+const style = document.createElement('style');
+style.textContent = `
+    @media print {
+        .print-mode nav,
+        .print-mode .no-print,
+        .print-mode button {
+            display: none !important;
+        }
+        .print-mode {
+            background: white !important;
+        }
+        .print-mode .bg-gradient-to-br {
+            background: #f8f9fa !important;
+            color: #333 !important;
+        }
+    }
+`;
+document.head.appendChild(style);
+
+// Auto-refresh data every 5 minutes
+setInterval(function() {
+    // In a real implementation, you might want to fetch updated data via AJAX
+    console.log('Data refresh check - implement AJAX update here');
+}, 300000);
+</script>
+{% endblock %}

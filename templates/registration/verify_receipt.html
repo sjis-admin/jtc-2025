@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Receipt Verification{% endblock %}
+
+{% block content %}
+<div class="container mx-auto mt-10 p-5">
+    <div class="max-w-2xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
+        <div class="p-5">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Receipt Verification</h2>
+            
+            {% if receipt %}
+                <div class="mb-4">
+                    <p class="text-lg"><strong>Receipt Number:</strong> {{ receipt.receipt_number }}</p>
+                    <p><strong>Student:</strong> {{ student.name }}</p>
+                    <p><strong>School:</strong> {{ student.school_college }}</p>
+                    <p><strong>Payment Status:</strong> 
+                        <span class="font-semibold 
+                            {% if payment.status == 'SUCCESS' %}text-green-600{% else %}text-red-600{% endif %}">
+                            {{ payment.get_status_display }}
+                        </span>
+                    </p>
+                    <p><strong>Amount:</strong> ৳{{ payment.amount }}</p>
+                    <p><strong>Transaction ID:</strong> {{ payment.transaction_id }}</p>
+                    <p><strong>Payment Method:</strong> {{ payment.get_payment_method_display }}</p>
+                    <p><strong>Date:</strong> {{ payment.completed_at|date:"F j, Y, g:i a" }}</p>
+                </div>
+
+                {% if payment.status == 'SUCCESS' %}
+                    <div class="p-4 bg-green-100 border-l-4 border-green-500 text-green-700">
+                        <p class="font-bold">Verified</p>
+                        <p>This payment has been successfully verified.</p>
+                    </div>
+                {% else %}
+                    <div class="p-4 bg-red-100 border-l-4 border-red-500 text-red-700">
+                        <p class="font-bold">Not Verified</p>
+                        <p>This payment has not been successfully verified.</p>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="p-4 bg-red-100 border-l-4 border-red-500 text-red-700">
+                    <p class="font-bold">Invalid Receipt</p>
+                    <p>The receipt number you are looking for does not exist.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

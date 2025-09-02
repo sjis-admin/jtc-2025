@@ -1,0 +1,536 @@
+<!-- templates/admin/admin_logs.html -->
+{% extends 'base.html' %}
+
+{% block title %}Admin Activity Logs - Josephite Tech Club{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="flex items-center justify-between p-6">
+            <h1 class="text-3xl font-bold text-gray-800">
+                <i class="fas fa-history text-primary mr-2"></i>
+                Admin Activity Logs
+            </h1>
+            <div class="flex items-center space-x-4">
+                <span class="text-gray-600">{{ page_obj.paginator.count }} Total Logs</span>
+                <button onclick="exportLogs()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors">
+                    <i class="fas fa-download mr-2"></i>Export Logs
+                </button>
+                <a href="{% url 'admin_dashboard' %}" class="text-primary hover:text-blue-700 transition-colors">
+                    <i class="fas fa-arrow-left mr-1"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="bg-white border-b">
+        <nav class="flex space-x-8 px-6">
+            <a href="{% url 'admin_dashboard' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-home mr-1"></i>Dashboard
+            </a>
+            <a href="{% url 'admin_students' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-users mr-1"></i>Students
+            </a>
+            <a href="{% url 'admin_payments' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-credit-card mr-1"></i>Payments
+            </a>
+            <a href="{% url 'admin_events' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-calendar mr-1"></i>Events
+            </a>
+            <a href="{% url 'admin_reports' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-chart-bar mr-1"></i>Reports
+            </a>
+            <a href="{% url 'admin_logs' %}" class="py-4 px-1 border-b-2 border-primary text-primary font-medium">
+                <i class="fas fa-history mr-1"></i>Logs
+            </a>
+        </nav>
+    </div>
+
+    <!-- Activity Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-6 p-6">
+        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-plus-circle text-2xl text-blue-500"></i>
+                </div>
+                <div class="ml-4">
+                    <div class="text-sm font-medium text-gray-500 uppercase">Created</div>
+                    <div class="text-xl font-bold text-gray-900">
+                        {{ stats.create_count|default:0 }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-edit text-2xl text-yellow-500"></i>
+                </div>
+                <div class="ml-4">
+                    <div class="text-sm font-medium text-gray-500 uppercase">Updated</div>
+                    <div class="text-xl font-bold text-gray-900">
+                        {{ stats.update_count|default:0 }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-trash text-2xl text-red-500"></i>
+                </div>
+                <div class="ml-4">
+                    <div class="text-sm font-medium text-gray-500 uppercase">Deleted</div>
+                    <div class="text-xl font-bold text-gray-900">
+                        {{ stats.delete_count|default:0 }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-check-circle text-2xl text-green-500"></i>
+                </div>
+                <div class="ml-4">
+                    <div class="text-sm font-medium text-gray-500 uppercase">Verified</div>
+                    <div class="text-xl font-bold text-gray-900">
+                        {{ stats.payment_verify_count|default:0 }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-envelope text-2xl text-purple-500"></i>
+                </div>
+                <div class="ml-4">
+                    <div class="text-sm font-medium text-gray-500 uppercase">Emails</div>
+                    <div class="text-xl font-bold text-gray-900">
+                        {{ stats.email_sent_count|default:0 }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white p-6 border-b mx-6 rounded-lg shadow-sm">
+        <form method="GET" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- User Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Admin User</label>
+                    <select name="user" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">All Users</option>
+                        {% for user in users %}
+                        <option value="{{ user.username }}" {% if user_filter == user.username %}selected{% endif %}>
+                            {{ user.get_full_name|default:user.username }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Action Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Action Type</label>
+                    <select name="action" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">All Actions</option>
+                        {% for action_code, action_name in actions %}
+                        <option value="{{ action_code }}" {% if action_filter == action_code %}selected{% endif %}>
+                            {{ action_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Date Range -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+                    <select name="date_range" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">All Time</option>
+                        <option value="today" {% if date_range_filter == 'today' %}selected{% endif %}>Today</option>
+                        <option value="week" {% if date_range_filter == 'week' %}selected{% endif %}>This Week</option>
+                        <option value="month" {% if date_range_filter == 'month' %}selected{% endif %}>This Month</option>
+                    </select>
+                </div>
+
+                <!-- Submit/Clear -->
+                <div class="flex items-end space-x-2">
+                    <button type="submit" class="flex-1 bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-filter mr-2"></i>Filter
+                    </button>
+                    <a href="{% url 'admin_logs' %}" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors text-center">
+                        <i class="fas fa-times mr-2"></i>Clear
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Activity Timeline -->
+    <div class="bg-white shadow-lg rounded-lg m-6 overflow-hidden">
+        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">Activity Timeline</h3>
+            <p class="text-sm text-gray-600 mt-1">Real-time log of all administrative actions</p>
+        </div>
+        
+        <div class="divide-y divide-gray-200">
+            {% for log in page_obj %}
+            <div class="px-6 py-4 hover:bg-gray-50 transition-colors">
+                <div class="flex items-start space-x-4">
+                    <!-- Action Icon -->
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center
+                            {% if log.action == 'CREATE' %}bg-blue-100 text-blue-600
+                            {% elif log.action == 'UPDATE' %}bg-yellow-100 text-yellow-600
+                            {% elif log.action == 'DELETE' %}bg-red-100 text-red-600
+                            {% elif log.action == 'LOGIN' %}bg-green-100 text-green-600
+                            {% elif log.action == 'LOGOUT' %}bg-gray-100 text-gray-600
+                            {% elif log.action == 'PAYMENT_VERIFY' %}bg-emerald-100 text-emerald-600
+                            {% elif log.action == 'RECEIPT_GENERATE' %}bg-purple-100 text-purple-600
+                            {% elif log.action == 'EMAIL_SENT' %}bg-indigo-100 text-indigo-600
+                            {% else %}bg-gray-100 text-gray-600{% endif %}">
+                            
+                            {% if log.action == 'CREATE' %}<i class="fas fa-plus text-sm"></i>
+                            {% elif log.action == 'UPDATE' %}<i class="fas fa-edit text-sm"></i>
+                            {% elif log.action == 'DELETE' %}<i class="fas fa-trash text-sm"></i>
+                            {% elif log.action == 'LOGIN' %}<i class="fas fa-sign-in-alt text-sm"></i>
+                            {% elif log.action == 'LOGOUT' %}<i class="fas fa-sign-out-alt text-sm"></i>
+                            {% elif log.action == 'PAYMENT_VERIFY' %}<i class="fas fa-check-circle text-sm"></i>
+                            {% elif log.action == 'RECEIPT_GENERATE' %}<i class="fas fa-receipt text-sm"></i>
+                            {% elif log.action == 'EMAIL_SENT' %}<i class="fas fa-envelope text-sm"></i>
+                            {% else %}<i class="fas fa-cog text-sm"></i>{% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Log Details -->
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <!-- Admin User -->
+                                <div class="flex items-center">
+                                    <div class="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-xs font-bold mr-2">
+                                        {{ log.admin_user.first_name|first|default:log.admin_user.username|first|upper }}
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-900">{{ log.admin_user.get_full_name|default:log.admin_user.username }}</span>
+                                </div>
+                                
+                                <!-- Action Badge -->
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {% if log.action == 'CREATE' %}bg-blue-100 text-blue-800
+                                    {% elif log.action == 'UPDATE' %}bg-yellow-100 text-yellow-800
+                                    {% elif log.action == 'DELETE' %}bg-red-100 text-red-800
+                                    {% elif log.action == 'LOGIN' %}bg-green-100 text-green-800
+                                    {% elif log.action == 'LOGOUT' %}bg-gray-100 text-gray-800
+                                    {% elif log.action == 'PAYMENT_VERIFY' %}bg-emerald-100 text-emerald-800
+                                    {% elif log.action == 'RECEIPT_GENERATE' %}bg-purple-100 text-purple-800
+                                    {% elif log.action == 'EMAIL_SENT' %}bg-indigo-100 text-indigo-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ log.get_action_display }}
+                                </span>
+                                
+                                <!-- Model Badge -->
+                                {% if log.model_name %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                                    {{ log.model_name }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Timestamp -->
+                            <div class="text-right">
+                                <div class="text-sm text-gray-900">{{ log.timestamp|date:"M j, Y" }}</div>
+                                <div class="text-xs text-gray-500">{{ log.timestamp|date:"g:i A" }}</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Description -->
+                        {% if log.description %}
+                        <div class="mt-2">
+                            <p class="text-sm text-gray-700">{{ log.description }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Additional Details -->
+                        <div class="mt-2 flex items-center space-x-4 text-xs text-gray-500">
+                            {% if log.object_id %}
+                            <span>
+                                <i class="fas fa-hashtag mr-1"></i>
+                                Object ID: {{ log.object_id }}
+                            </span>
+                            {% endif %}
+                            
+                            {% if log.ip_address %}
+                            <span>
+                                <i class="fas fa-globe mr-1"></i>
+                                IP: {{ log.ip_address }}
+                            </span>
+                            {% endif %}
+                            
+                            <span>
+                                <i class="fas fa-clock mr-1"></i>
+                                {{ log.timestamp|timesince }} ago
+                            </span>
+                        </div>
+                        
+                        <!-- Risk Level Indicator -->
+                        {% if log.action == 'DELETE' %}
+                        <div class="mt-2">
+                            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>
+                                High Risk Action
+                            </span>
+                        </div>
+                        {% elif log.action == 'PAYMENT_VERIFY' %}
+                        <div class="mt-2">
+                            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
+                                <i class="fas fa-shield-alt mr-1"></i>
+                                Financial Action
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="px-6 py-12 text-center">
+                <div class="text-gray-500">
+                    <i class="fas fa-history text-4xl mb-4"></i>
+                    <div class="text-lg font-medium">No activity logs found</div>
+                    <div class="text-sm">
+                        {% if user_filter or action_filter or date_range_filter %}
+                        Try adjusting your filters or <a href="{% url 'admin_logs' %}" class="text-primary hover:text-blue-700">view all logs</a>.
+                        {% else %}
+                        Administrative actions will appear here as they occur.
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 mx-6 mb-6 rounded-lg shadow">
+        <div class="flex-1 flex justify-between sm:hidden">
+            {% if page_obj.has_previous %}
+            <a href="?{% if user_filter %}user={{ user_filter }}&{% endif %}{% if action_filter %}action={{ action_filter }}&{% endif %}{% if date_range_filter %}date_range={{ date_range_filter }}&{% endif %}page={{ page_obj.previous_page_number }}"
+               class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                Previous
+            </a>
+            {% endif %}
+            {% if page_obj.has_next %}
+            <a href="?{% if user_filter %}user={{ user_filter }}&{% endif %}{% if action_filter %}action={{ action_filter }}&{% endif %}{% if date_range_filter %}date_range={{ date_range_filter }}&{% endif %}page={{ page_obj.next_page_number }}"
+               class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                Next
+            </a>
+            {% endif %}
+        </div>
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+                <p class="text-sm text-gray-700">
+                    Showing <span class="font-medium">{{ page_obj.start_index }}</span> to <span class="font-medium">{{ page_obj.end_index }}</span> of <span class="font-medium">{{ page_obj.paginator.count }}</span> results
+                </p>
+            </div>
+            <div>
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                    {% if page_obj.has_previous %}
+                    <a href="?{% if user_filter %}user={{ user_filter }}&{% endif %}{% if action_filter %}action={{ action_filter }}&{% endif %}{% if date_range_filter %}date_range={{ date_range_filter }}&{% endif %}page={{ page_obj.previous_page_number }}"
+                       class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <span class="relative inline-flex items-center px-4 py-2 border border-primary bg-primary text-sm font-medium text-white">
+                        {{ num }}
+                    </span>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?{% if user_filter %}user={{ user_filter }}&{% endif %}{% if action_filter %}action={{ action_filter }}&{% endif %}{% if date_range_filter %}date_range={{ date_range_filter }}&{% endif %}page={{ num }}"
+                       class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        {{ num }}
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <a href="?{% if user_filter %}user={{ user_filter }}&{% endif %}{% if action_filter %}action={{ action_filter }}&{% endif %}{% if date_range_filter %}date_range={{ date_range_filter }}&{% endif %}page={{ page_obj.next_page_number }}"
+                       class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Log Statistics Footer -->
+    <div class="bg-white border-t px-6 py-4 mx-6 mb-6 rounded-lg shadow-sm">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+            <div class="text-center">
+                <div class="font-semibold text-gray-800">Most Active User</div>
+                <div class="text-gray-600">
+                    {{ stats.most_active_user|default:"N/A" }}
+                </div>
+            </div>
+            <div class="text-center">
+                <div class="font-semibold text-gray-800">Latest Activity</div>
+                <div class="text-gray-600">
+                    {% if stats.latest_activity %}{{ stats.latest_activity|timesince }} ago{% else %}N/A{% endif %}
+                </div>
+            </div>
+            <div class="text-center">
+                <div class="font-semibold text-gray-800">Log Retention</div>
+                <div class="text-gray-600">90 days (automatic cleanup)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Live Updates Indicator -->
+<div id="liveIndicator" class="fixed bottom-4 right-4 bg-green-500 text-white px-3 py-2 rounded-lg shadow-lg hidden">
+    <i class="fas fa-circle animate-pulse mr-2"></i>
+    <span class="text-sm font-medium">Live Updates Active</span>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Export logs functionality
+function exportLogs() {
+    const logs = [];
+    
+    // Collect log data from the current page
+    {% for log in page_obj %}
+    logs.push({
+        timestamp: '{{ log.timestamp|date:"Y-m-d H:i:s" }}',
+        user: '{{ log.admin_user.get_full_name|default:log.admin_user.username|escapejs }}',
+        action: '{{ log.get_action_display|escapejs }}',
+        model: '{{ log.model_name|default:""|escapejs }}',
+        object_id: '{{ log.object_id|default:""|escapejs }}',
+        description: '{{ log.description|escapejs }}',
+        ip_address: '{{ log.ip_address|default:""|escapejs }}'
+    });
+    {% endfor %}
+    
+    // Convert to CSV
+    let csv = 'Timestamp,User,Action,Model,Object ID,Description,IP Address\n';
+    logs.forEach(log => {
+        csv += `"${log.timestamp}","${log.user}","${log.action}","${log.model}","${log.object_id}","${log.description}","${log.ip_address}"\n`;
+    });
+    
+    // Download file
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Admin_Logs_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Live updates simulation
+let liveUpdatesEnabled = true;
+const liveIndicator = document.getElementById('liveIndicator');
+
+function toggleLiveUpdates() {
+    liveUpdatesEnabled = !liveUpdatesEnabled;
+    if (liveUpdatesEnabled) {
+        liveIndicator.classList.remove('hidden');
+        console.log('Live updates enabled');
+    } else {
+        liveIndicator.classList.add('hidden');
+        console.log('Live updates disabled');
+    }
+}
+
+// Auto-refresh every 30 seconds for new logs
+setInterval(function() {
+    if (liveUpdatesEnabled && !document.hidden) {
+        console.log('Checking for new logs...');
+        
+        // For demo, show live indicator briefly
+        liveIndicator.classList.remove('hidden');
+        setTimeout(() => {
+            if (!liveUpdatesEnabled) {
+                liveIndicator.classList.add('hidden');
+            }
+        }, 2000);
+    }
+}, 30000);
+
+// Handle page visibility change
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        liveIndicator.classList.add('hidden');
+    } else if (liveUpdatesEnabled) {
+        liveIndicator.classList.remove('hidden');
+    }
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl+R or Cmd+R to refresh
+    if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        location.reload();
+    }
+    
+    // Ctrl+E or Cmd+E to export
+    if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+        e.preventDefault();
+        exportLogs();
+    }
+    
+    // L key to toggle live updates
+    if (e.key === 'l' && !e.ctrlKey && !e.metaKey && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') {
+        toggleLiveUpdates();
+    }
+});
+
+// Initialize live updates on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Show live indicator initially
+    setTimeout(() => {
+        if (liveUpdatesEnabled) {
+            liveIndicator.classList.remove('hidden');
+        }
+    }, 1000);
+    
+    // Add scroll-to-top functionality for long logs
+    const scrollTopBtn = document.createElement('button');
+    scrollTopBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+    scrollTopBtn.className = 'fixed bottom-4 left-4 bg-primary text-white w-10 h-10 rounded-full shadow-lg hover:bg-blue-700 transition-colors hidden';
+    scrollTopBtn.onclick = () => window.scrollTo({top: 0, behavior: 'smooth'});
+    document.body.appendChild(scrollTopBtn);
+    
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 300) {
+            scrollTopBtn.classList.remove('hidden');
+        } else {
+            scrollTopBtn.classList.add('hidden');
+        }
+    });
+});
+
+// Security warning for high-risk actions
+{% for log in page_obj %}
+{% if log.action == 'DELETE' %}
+console.warn('High-risk action detected: {{ log.get_action_display }} by {{ log.admin_user.username }} at {{ log.timestamp }}');
+{% endif %}
+{% endfor %}
+</script>
+{% endblock %}

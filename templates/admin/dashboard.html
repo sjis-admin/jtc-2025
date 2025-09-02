@@ -1,0 +1,458 @@
+<!-- templates/admin/dashboard.html -->
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard - Josephite Tech Club{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="flex items-center justify-between p-6">
+            <h1 class="text-3xl font-bold text-gray-800">
+                <i class="fas fa-tachometer-alt text-primary mr-2"></i>
+                Admin Dashboard
+            </h1>
+            <div class="flex items-center space-x-4">
+                <span class="text-gray-600">Welcome, {{ user.get_full_name|default:user.username }}</span>
+                <a href="{% url 'admin:logout' %}" class="text-red-600 hover:text-red-800 transition-colors">
+                    <i class="fas fa-sign-out-alt mr-1"></i>Logout
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="bg-white border-b">
+        <nav class="flex space-x-8 px-6">
+            <a href="{% url 'admin_dashboard' %}" class="py-4 px-1 border-b-2 border-primary text-primary font-medium">
+                <i class="fas fa-home mr-1"></i>Dashboard
+            </a>
+            <a href="{% url 'admin_students' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-users mr-1"></i>Students
+            </a>
+            <a href="{% url 'admin_payments' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-credit-card mr-1"></i>Payments
+            </a>
+            <a href="{% url 'admin_events' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-calendar mr-1"></i>Events
+            </a>
+            <a href="{% url 'admin_reports' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-chart-bar mr-1"></i>Reports
+            </a>
+            <a href="{% url 'admin_logs' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-history mr-1"></i>Logs
+            </a>
+        </nav>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-6">
+        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 transform hover:scale-105 transition-transform duration-200">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-users text-3xl text-blue-500"></i>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Total Students</dt>
+                        <dd class="text-2xl font-bold text-gray-900">{{ total_students }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 transform hover:scale-105 transition-transform duration-200">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-check-circle text-3xl text-green-500"></i>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Paid Students</dt>
+                        <dd class="text-2xl font-bold text-gray-900">{{ paid_students }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500 transform hover:scale-105 transition-transform duration-200">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-clock text-3xl text-yellow-500"></i>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Pending Payments</dt>
+                        <dd class="text-2xl font-bold text-gray-900">{{ pending_payments }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500 transform hover:scale-105 transition-transform duration-200">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-money-bill-wave text-3xl text-purple-500"></i>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Total Revenue</dt>
+                        <dd class="text-2xl font-bold text-gray-900">৳{{ total_revenue|floatformat:0 }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts and Statistics -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 px-6 pb-6">
+        <!-- Registration Trends -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    <i class="fas fa-chart-line text-blue-500 mr-2"></i>
+                    Registration Trends (Last 7 Days)
+                </h3>
+                <div class="text-sm text-gray-500">Daily Registrations</div>
+            </div>
+            <div class="h-64 flex items-end space-x-2 bg-gray-50 p-4 rounded-lg">
+                {% for day in daily_registrations %}
+                <div class="flex-1 flex flex-col items-center group">
+                    <div class="w-full bg-blue-100 rounded-t relative overflow-hidden" style="height: {% widthratio day.count 10 200 %}px; min-height: 20px;">
+                        <div class="w-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t transition-all duration-300 group-hover:from-blue-600 group-hover:to-blue-500" style="height: 100%;"></div>
+                        <div class="absolute inset-0 bg-blue-600 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+                    </div>
+                    <div class="text-xs text-gray-500 mt-2 text-center">{{ day.date|date:"M j" }}</div>
+                    <div class="text-sm font-bold text-gray-800 group-hover:text-blue-600 transition-colors">{{ day.count }}</div>
+                </div>
+                {% empty %}
+                <div class="text-center text-gray-500 w-full py-16">
+                    <i class="fas fa-chart-line text-4xl mb-4"></i>
+                    <p>No registration data available</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Event Statistics -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    <i class="fas fa-calendar-check text-green-500 mr-2"></i>
+                    Event Registration Stats
+                </h3>
+                <div class="text-sm text-gray-500">Total Events</div>
+            </div>
+            <div class="space-y-4">
+                {% for event in event_stats %}
+                <div class="flex items-center justify-between hover:bg-gray-50 p-3 rounded-lg transition-colors">
+                    <div class="flex-1">
+                        <div class="text-sm font-medium text-gray-800 mb-1">{{ event.event__name|default:"Event Name" }}</div>
+                        <div class="w-full bg-gray-200 rounded-full h-3 relative overflow-hidden">
+                            <div class="bg-gradient-to-r from-green-400 to-green-500 h-3 rounded-full transition-all duration-500 ease-out" 
+                                 style="width: {% if event_stats.0.count > 0 %}{% widthratio event.count event_stats.0.count 100 %}{% else %}0{% endif %}%;"></div>
+                        </div>
+                    </div>
+                    <div class="ml-4 text-right">
+                        <div class="text-lg font-bold text-gray-700">{{ event.count }}</div>
+                        <div class="text-xs text-gray-500">registrations</div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-gray-500 py-8">
+                    <i class="fas fa-calendar text-3xl mb-3"></i>
+                    <p>No event registrations yet</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Group Statistics and Payment Breakdown -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 px-6 pb-6">
+        <!-- Group-wise Distribution -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-layer-group text-indigo-500 mr-2"></i>
+                Group-wise Distribution
+            </h3>
+            <div class="space-y-3">
+                {% for group in group_stats %}
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-indigo-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">
+                            {{ group.group }}
+                        </div>
+                        <div>
+                            <div class="font-medium text-gray-800">Group {{ group.group }}</div>
+                            <div class="text-xs text-gray-500">
+                                {% if group.group == 'A' %}Grade 3-5
+                                {% elif group.group == 'B' %}Grade 6-8
+                                {% elif group.group == 'C' %}Grade 9-10
+                                {% elif group.group == 'D' %}Grade 11-12
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-indigo-600">{{ group.count }}</div>
+                        <div class="text-xs text-gray-500">students</div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-gray-500 py-8">
+                    <i class="fas fa-users text-3xl mb-3"></i>
+                    <p>No group data available</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Payment Status Breakdown -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-credit-card text-purple-500 mr-2"></i>
+                Payment Status Breakdown
+            </h3>
+            <div class="space-y-3">
+                {% for payment in payment_stats %}
+                <div class="flex items-center justify-between p-3 rounded-lg
+                    {% if payment.status == 'SUCCESS' %}bg-green-50 hover:bg-green-100
+                    {% elif payment.status == 'PENDING' %}bg-yellow-50 hover:bg-yellow-100
+                    {% elif payment.status == 'FAILED' %}bg-red-50 hover:bg-red-100
+                    {% else %}bg-gray-50 hover:bg-gray-100{% endif %} transition-colors">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full mr-3
+                            {% if payment.status == 'SUCCESS' %}bg-green-500
+                            {% elif payment.status == 'PENDING' %}bg-yellow-500
+                            {% elif payment.status == 'FAILED' %}bg-red-500
+                            {% else %}bg-gray-500{% endif %}"></div>
+                        <div class="font-medium text-gray-800">{{ payment.status|title }}</div>
+                    </div>
+                    <div class="text-lg font-bold
+                        {% if payment.status == 'SUCCESS' %}text-green-600
+                        {% elif payment.status == 'PENDING' %}text-yellow-600
+                        {% elif payment.status == 'FAILED' %}text-red-600
+                        {% else %}text-gray-600{% endif %}">{{ payment.count }}</div>
+                </div>
+                {% empty %}
+                <div class="text-center text-gray-500 py-8">
+                    <i class="fas fa-receipt text-3xl mb-3"></i>
+                    <p>No payment data available</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Registrations and Quick Actions -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 px-6 pb-6">
+        <!-- Recent Registrations -->
+        <div class="lg:col-span-2 bg-white rounded-xl shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    <i class="fas fa-clock text-orange-500 mr-2"></i>
+                    Recent Registrations
+                </h3>
+                <a href="{% url 'admin_students' %}" class="text-primary hover:text-blue-700 text-sm font-medium transition-colors">
+                    View All <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead>
+                        <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                            <th class="pb-3">Student</th>
+                            <th class="pb-3">School</th>
+                            <th class="pb-3">Grade</th>
+                            <th class="pb-3">Status</th>
+                            <th class="pb-3">Registered</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for student in recent_students %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="py-3">
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">{{ student.name }}</div>
+                                    <div class="text-xs text-gray-500">{{ student.email }}</div>
+                                </div>
+                            </td>
+                            <td class="py-3">
+                                <div class="text-sm text-gray-900">{{ student.school_college|truncatechars:20 }}</div>
+                            </td>
+                            <td class="py-3">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                    Grade {{ student.grade }}
+                                </span>
+                            </td>
+                            <td class="py-3">
+                                {% if student.is_paid %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        <i class="fas fa-check-circle mr-1"></i>Paid
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        <i class="fas fa-clock mr-1"></i>Pending
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3">
+                                <div class="text-xs text-gray-500">{{ student.created_at|date:"M j, Y" }}</div>
+                                <div class="text-xs text-gray-400">{{ student.created_at|date:"g:i A" }}</div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="py-12 text-center text-gray-500">
+                                <i class="fas fa-user-plus text-4xl mb-4"></i>
+                                <div>No registrations yet</div>
+                                <div class="text-sm">Students will appear here after registration</div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-bolt text-yellow-500 mr-2"></i>
+                Quick Actions
+            </h3>
+            <div class="space-y-3">
+                <a href="{% url 'admin_students' %}" class="block p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors group">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-blue-500 text-white rounded-lg flex items-center justify-center group-hover:bg-blue-600 transition-colors">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="ml-3">
+                            <div class="text-sm font-medium text-gray-900">Manage Students</div>
+                            <div class="text-xs text-gray-500">View and edit registrations</div>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="{% url 'admin_payments' %}" class="block p-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors group">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-green-500 text-white rounded-lg flex items-center justify-center group-hover:bg-green-600 transition-colors">
+                            <i class="fas fa-credit-card"></i>
+                        </div>
+                        <div class="ml-3">
+                            <div class="text-sm font-medium text-gray-900">Payment Management</div>
+                            <div class="text-xs text-gray-500">Verify and track payments</div>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="{% url 'admin_reports' %}" class="block p-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors group">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-purple-500 text-white rounded-lg flex items-center justify-center group-hover:bg-purple-600 transition-colors">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <div class="ml-3">
+                            <div class="text-sm font-medium text-gray-900">Generate Reports</div>
+                            <div class="text-xs text-gray-500">Download detailed reports</div>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="{% url 'admin_events' %}" class="block p-3 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors group">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-indigo-500 text-white rounded-lg flex items-center justify-center group-hover:bg-indigo-600 transition-colors">
+                            <i class="fas fa-calendar"></i>
+                        </div>
+                        <div class="ml-3">
+                            <div class="text-sm font-medium text-gray-900">Manage Events</div>
+                            <div class="text-xs text-gray-500">Add and configure events</div>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="{% url 'admin_logs' %}" class="block p-3 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors group">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-orange-500 text-white rounded-lg flex items-center justify-center group-hover:bg-orange-600 transition-colors">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <div class="ml-3">
+                            <div class="text-sm font-medium text-gray-900">Activity Logs</div>
+                            <div class="text-xs text-gray-500">Monitor admin activities</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- System Status -->
+            <div class="mt-6 pt-4 border-t border-gray-200">
+                <h4 class="text-sm font-medium text-gray-800 mb-3">System Status</h4>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-600">Registration</span>
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <div class="w-1.5 h-1.5 bg-green-400 rounded-full mr-1"></div>
+                            Active
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-600">Payment Gateway</span>
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <div class="w-1.5 h-1.5 bg-green-400 rounded-full mr-1"></div>
+                            Online
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-600">Email Service</span>
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <div class="w-1.5 h-1.5 bg-green-400 rounded-full mr-1"></div>
+                            Active
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Statistics -->
+    <div class="bg-white border-t px-6 py-4">
+        <div class="flex items-center justify-between text-sm text-gray-600">
+            <div>
+                Last updated: <span class="font-medium">{{ "now"|date:"M j, Y g:i A" }}</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div>Total Registration Fee Collected: <span class="font-medium text-green-600">৳{{ total_revenue|floatformat:0 }}</span></div>
+                <div>•</div>
+                <div>Expected Revenue: <span class="font-medium text-blue-600">৳{{ expected_revenue|floatformat:0 }}</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Auto-refresh dashboard every 5 minutes
+    setTimeout(function() {
+        location.reload();
+    }, 300000);
+    
+    // Add smooth animations
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.transform');
+        cards.forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+        });
+        
+        // Animate cards in sequence
+        cards.forEach((card, index) => {
+            setTimeout(() => {
+                card.style.transition = 'all 0.6s ease-out';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    });
+</script>
+{% endblock %}

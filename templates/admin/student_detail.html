@@ -1,0 +1,283 @@
+<!-- ====================================================================== -->
+<!-- File 1: templates/admin/student_detail.html -->
+<!-- ====================================================================== -->
+{% extends 'base.html' %}
+
+{% block title %}Student Details - {{ student.name }} - Josephite Tech Club{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="flex items-center justify-between p-6">
+            <div class="flex items-center space-x-4">
+                <a href="{% url 'admin_students' %}" class="text-gray-600 hover:text-gray-800 transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Students
+                </a>
+                <h1 class="text-3xl font-bold text-gray-800">
+                    <i class="fas fa-user text-primary mr-2"></i>
+                    Student Details
+                </h1>
+            </div>
+            <div class="flex items-center space-x-3">
+                {% if not student.is_paid %}
+                <form method="post" action="{% url 'admin_verify_payment' payment_id=payments.first.id %}" class="inline" style="{% if not payments %}display: none;{% endif %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="approve">
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        <i class="fas fa-check mr-1"></i>Mark as Paid
+                    </button>
+                </form>
+                {% endif %}
+                <a href="{% url 'generate_receipt' student_id=student.id %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                    <i class="fas fa-receipt mr-1"></i>Generate Receipt
+                </a>
+                <a href="{% url 'send_email' student_id=student.id %}" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                    <i class="fas fa-envelope mr-1"></i>Send Email
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="bg-white border-b">
+        <nav class="flex space-x-8 px-6">
+            <a href="{% url 'admin_dashboard' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-home mr-1"></i>Dashboard
+            </a>
+            <a href="{% url 'admin_students' %}" class="py-4 px-1 border-b-2 border-primary text-primary font-medium">
+                <i class="fas fa-users mr-1"></i>Students
+            </a>
+            <a href="{% url 'admin_payments' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-credit-card mr-1"></i>Payments
+            </a>
+            <a href="{% url 'admin_events' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-calendar mr-1"></i>Events
+            </a>
+        </nav>
+    </div>
+
+    <div class="p-6">
+        <!-- Student Information Cards -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <!-- Personal Information -->
+            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-user text-2xl text-blue-500 mr-3"></i>
+                    <h3 class="text-lg font-semibold text-gray-800">Personal Information</h3>
+                </div>
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-sm font-medium text-gray-500 uppercase tracking-wide">Name</label>
+                        <p class="text-lg font-medium text-gray-900">{{ student.name }}</p>
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium text-gray-500 uppercase tracking-wide">Email</label>
+                        <p class="text-gray-900">{{ student.email }}</p>
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium text-gray-500 uppercase tracking-wide">Mobile</label>
+                        <p class="text-gray-900">{{ student.mobile_number }}</p>
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium text-gray-500 uppercase tracking-wide">Registration ID</label>
+                        <p class="text-gray-900 font-mono text-sm">{{ student.registration_id }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Academic Information -->
+            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-graduation-cap text-2xl text-green-500 mr-3"></i>
+                    <h3 class="text-lg font-semibold text-gray-800">Academic Information</h3>
+                </div>
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-sm font-medium text-gray-500 uppercase tracking-wide">School/College</label>
+                        <p class="text-gray-900">{{ student.school_college }}</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm font-medium text-gray-500 uppercase tracking-wide">Grade</label>
+                            <p class="text-lg font-semibold text-gray-900">{{ student.get_grade_display }}</p>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-500 uppercase tracking-wide">Group</label>
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                {{ student.get_group_display }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        {% if student.section %}
+                        <div>
+                            <label class="text-sm font-medium text-gray-500 uppercase tracking-wide">Section</label>
+                            <p class="text-gray-900">{{ student.section }}</p>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <label class="text-sm font-medium text-gray-500 uppercase tracking-wide">Roll</label>
+                            <p class="text-gray-900">{{ student.roll }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Information -->
+            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-{% if student.is_paid %}green{% else %}red{% endif %}-500">
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-credit-card text-2xl text-{% if student.is_paid %}green{% else %}red{% endif %}-500 mr-3"></i>
+                    <h3 class="text-lg font-semibold text-gray-800">Payment Information</h3>
+                </div>
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-sm font-medium text-gray-500 uppercase tracking-wide">Total Amount</label>
+                        <p class="text-2xl font-bold text-gray-900">৳{{ student.total_amount }}</p>
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium text-gray-500 uppercase tracking-wide">Payment Status</label>
+                        {% if student.is_paid %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                <i class="fas fa-check-circle mr-1"></i>Paid
+                                {% if student.payment_verified %}✓ Verified{% endif %}
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                                <i class="fas fa-clock mr-1"></i>Unpaid
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium text-gray-500 uppercase tracking-wide">Registered</label>
+                        <p class="text-gray-900">{{ student.created_at|date:"M j, Y g:i A" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Events and Payment History -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Registered Events -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">
+                        <i class="fas fa-calendar-check text-purple-500 mr-2"></i>
+                        Registered Events
+                    </h3>
+                    <span class="text-sm text-gray-500">{{ events.count }} event(s)</span>
+                </div>
+                <div class="space-y-3">
+                    {% for event in events %}
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                            <h4 class="font-medium text-gray-900">{{ event.name }}</h4>
+                            <p class="text-sm text-gray-600">{{ event.description|truncatechars:60 }}</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-semibold text-purple-600">৳{{ event.fee }}</div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-gray-500 py-8">
+                        <i class="fas fa-calendar text-3xl mb-3"></i>
+                        <p>No events registered</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Payment History -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">
+                        <i class="fas fa-history text-orange-500 mr-2"></i>
+                        Payment History
+                    </h3>
+                    <span class="text-sm text-gray-500">{{ payments.count }} payment(s)</span>
+                </div>
+                <div class="space-y-3">
+                    {% for payment in payments %}
+                    <div class="p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="font-medium text-gray-900">{{ payment.transaction_id }}</div>
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                {% if payment.status == 'SUCCESS' %}bg-green-100 text-green-800
+                                {% elif payment.status == 'PENDING' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                {{ payment.get_status_display }}
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm text-gray-600">
+                            <div>৳{{ payment.amount }}</div>
+                            <div>{{ payment.created_at|date:"M j, Y g:i A" }}</div>
+                        </div>
+                        {% if payment.payment_method %}
+                        <div class="text-xs text-gray-500 mt-1">{{ payment.get_payment_method_display }}</div>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-gray-500 py-8">
+                        <i class="fas fa-credit-card text-3xl mb-3"></i>
+                        <p>No payment records</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Receipts -->
+        {% if receipts %}
+        <div class="mt-6">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">
+                        <i class="fas fa-receipt text-indigo-500 mr-2"></i>
+                        Generated Receipts
+                    </h3>
+                    <span class="text-sm text-gray-500">{{ receipts.count }} receipt(s)</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead>
+                            <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                                <th class="pb-3">Receipt Number</th>
+                                <th class="pb-3">Generated By</th>
+                                <th class="pb-3">Generated At</th>
+                                <th class="pb-3">Email Status</th>
+                                <th class="pb-3">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for receipt in receipts %}
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="py-3 font-mono text-sm">{{ receipt.receipt_number }}</td>
+                                <td class="py-3">{{ receipt.generated_by.get_full_name|default:receipt.generated_by.username }}</td>
+                                <td class="py-3">{{ receipt.generated_at|date:"M j, Y g:i A" }}</td>
+                                <td class="py-3">
+                                    {% if receipt.email_sent %}
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <i class="fas fa-check mr-1"></i>Sent
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                            <i class="fas fa-clock mr-1"></i>Not Sent
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3">
+                                    <a href="{% url 'generate_receipt' student_id=student.id %}" class="text-blue-600 hover:text-blue-800 text-sm">
+                                        <i class="fas fa-eye mr-1"></i>View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

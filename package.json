@@ -1,0 +1,20 @@
+{
+  "name": "josephite_tech_club",
+  "version": "1.0.0",
+  "description": "A comprehensive Django web application for managing student registrations for the Josephite Tech Carnival 2025. Features include online registration, SSL Commerz payment integration, automated email confirmations, and a powerful admin dashboard.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "postcss ./static/css/tailwind.css -o ./static/css/dist/tailwind.css"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.12",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "postcss-cli": "^11.0.1",
+    "tailwindcss": "^4.1.12"
+  }
+}

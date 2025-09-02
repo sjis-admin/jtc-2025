@@ -1,0 +1,10 @@
+{% extends 'admin/base_site.html' %}
+{% block content %}
+<h1>Bulk Add Schools</h1>
+<p>Enter school names, one per line. Duplicate names will be ignored.</p>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Add Schools</button>
+</form>
+{% endblock %}

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Detailed Registration Report</title>
+    <style>
+        @page {
+            size: a4 portrait;
+            margin: 1.5cm;
+        }
+        body {
+            font-family: "Helvetica", sans-serif;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #007bff;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {background-color: #f9f9f9;}
+    </style>
+</head>
+<body>
+    <h1>Josephite Tech Club - Detailed Registration Report</h1>
+    <p>Generated on: {{ today|date:"F j, Y, g:i a" }}</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Student Name</th>
+                <th>Email</th>
+                <th>Mobile</th>
+                <th>School</th>
+                <th>Grade</th>
+                <th>Amount Paid</th>
+                <th>Events</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students %}
+            <tr>
+                <td>{{ student.name }}</td>
+                <td>{{ student.email }}</td>
+                <td>{{ student.mobile_number }}</td>
+                <td>{{ student.school_college.name|default:"" }}</td>
+                <td>{{ student.get_grade_display }}</td>
+                <td>{{ student.payments.first.amount|default:"N/A" }}</td>
+                <td>{{ student.events.all|join:", " }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

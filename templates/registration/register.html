@@ -1,0 +1,221 @@
+<!-- templates/registration/register.html -->
+{% extends 'base.html' %}
+
+{% block title %}Register - Josephite Tech Carnival 2025{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-gray-800 mb-4">
+            <i class="fas fa-user-plus text-primary mr-2"></i>
+            Register for Tech Carnival 2025
+        </h1>
+        <p class="text-gray-600 text-lg">Join the ultimate technology competition and showcase your skills!</p>
+    </div>
+
+    <!-- Registration Form -->
+    <div class="bg-white rounded-2xl shadow-xl p-8">
+        <form method="post" hx-boost="true" class="space-y-6">
+            {% csrf_token %}
+            
+            <!-- Personal Information Section -->
+            <div class="border-b border-gray-200 pb-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-user text-blue-500 mr-2"></i>
+                    Personal Information
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Full Name <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="text-red-500 text-sm mt-1">{{ form.name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Email Address <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div class="text-red-500 text-sm mt-1">{{ form.email.errors.0 }}</div>
+                        {% endif %}
+                        <p class="text-xs text-gray-500 mt-1">Participation certificate will be sent here</p>
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.mobile_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Mobile Number (WhatsApp) <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.mobile_number }}
+                        {% if form.mobile_number.errors %}
+                            <div class="text-red-500 text-sm mt-1">{{ form.mobile_number.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Academic Information Section -->
+            <div class="border-b border-gray-200 pb-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-graduation-cap text-green-500 mr-2"></i>
+                    Academic Information
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="md:col-span-2">
+                        <label for="{{ form.school_college.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            School/College Name <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.school_college }}
+                        {% if form.school_college.errors %}
+                            <div class="text-red-500 text-sm mt-1">{{ form.school_college.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="md:col-span-2" id="other_school_div" style="display: none;">
+                        <label for="{{ form.other_school.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Other School/College Name <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.other_school }}
+                        {% if form.other_school.errors %}
+                            <div class="text-red-500 text-sm mt-1">{{ form.other_school.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.grade.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Grade/Class <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.grade }}
+                        {% if form.grade.errors %}
+                            <div class="text-red-500 text-sm mt-1">{{ form.grade.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Group (Auto-selected)
+                        </label>
+                        <div id="group-display" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600">
+                            Select grade first
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.section.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Section
+                        </label>
+                        {{ form.section }}
+                        {% if form.section.errors %}
+                            <div class="text-red-500 text-sm mt-1">{{ form.section.errors.0 }}</div>
+                        {% endif %}
+                        <p class="text-xs text-gray-500 mt-1">Only fill if you're from SJIS</p>
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.roll.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Roll Number/ID <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.roll }}
+                        {% if form.roll.errors %}
+                            <div class="text-red-500 text-sm mt-1">{{ form.roll.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Event Selection Section -->
+            <div class="pb-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-calendar-check text-purple-500 mr-2"></i>
+                    Event Selection
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for checkbox in form.events %}
+                        <div class="border border-gray-200 rounded-lg p-4 hover:bg-blue-50 transition-colors">
+                            <label class="flex items-start space-x-3 cursor-pointer">
+                                {{ checkbox.tag }}
+                                <div class="flex-1">
+                                    <div class="font-medium text-gray-800">{{ checkbox.choice_label }}</div>
+                                    <div class="text-sm text-green-600 font-medium">৳500</div>
+                                </div>
+                            </label>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                {% if form.events.errors %}
+                    <div class="text-red-500 text-sm mt-2">{{ form.events.errors.0 }}</div>
+                {% endif %}
+                
+                <!-- Total Amount Display -->
+                <div class="mt-6 bg-gray-50 rounded-lg p-6 border-2 border-dashed border-gray-300">
+                    <div class="text-center">
+                        <h3 class="text-lg font-medium text-gray-700 mb-2">Total Amount to Pay</h3>
+                        <div id="total-amount">
+                            <div class="text-gray-500">৳0</div>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2">Select events to see total amount</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Errors -->
+            {% if form.non_field_errors %}
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="text-red-700">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        {% for error in form.non_field_errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Submit Button -->
+            <div class="flex justify-center pt-6">
+                <button type="submit" class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-xl text-lg transition-all transform hover:scale-105 shadow-lg">
+                    <i class="fas fa-credit-card mr-2"></i>
+                    Proceed to Payment
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Payment Info -->
+    <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-blue-800 mb-4 flex items-center">
+            <i class="fas fa-info-circle mr-2"></i>
+            Payment Information
+        </h3>
+        <ul class="text-blue-700 space-y-2">
+            <li class="flex items-center"><i class="fas fa-check-circle text-green-500 mr-2"></i>Secure payment via SSL Commerz</li>
+            <li class="flex items-center"><i class="fas fa-mobile-alt text-green-500 mr-2"></i>Pay with bKash, Rocket, Nagad, or Card</li>
+            <li class="flex items-center"><i class="fas fa-receipt text-green-500 mr-2"></i>Instant receipt generation</li>
+            <li class="flex items-center"><i class="fas fa-envelope text-green-500 mr-2"></i>Email confirmation</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const schoolCollegeSelect = document.getElementById('id_school_college');
+        const otherSchoolDiv = document.getElementById('other_school_div');
+
+        schoolCollegeSelect.addEventListener('change', function() {
+            if (this.options[this.selectedIndex].text === 'Other') {
+                otherSchoolDiv.style.display = 'block';
+            } else {
+                otherSchoolDiv.style.display = 'none';
+            }
+        });
+    });
+</script>
+{% endblock %}

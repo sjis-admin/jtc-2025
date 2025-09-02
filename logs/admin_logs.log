@@ -1,0 +1,35 @@
+INFO 2025-08-26 20:28:52,047 utils 22786 6132641792 Admin action logged: superadmin - LOGIN - Admin user logged in
+INFO 2025-08-26 20:29:01,611 utils 22786 6132641792 Admin action logged: superadmin - LOGIN - Admin dashboard accessed
+INFO 2025-08-26 20:29:54,094 utils 22786 6132641792 Admin action logged: superadmin - LOGIN - Admin dashboard accessed
+INFO 2025-09-01 22:05:37,642 utils 22265 6206287872 Admin action logged: racy - LOGIN - Admin user logged in
+INFO 2025-09-01 22:06:34,281 utils 22265 6256766976 Admin action logged: racy - LOGIN - Admin dashboard accessed
+INFO 2025-09-01 22:06:40,720 utils 22265 6256766976 Admin action logged: racy - LOGIN - Admin dashboard accessed
+INFO 2025-09-01 22:07:37,244 utils 23055 6170144768 Admin action logged: racy - LOGIN - Admin dashboard accessed
+INFO 2025-09-01 22:07:38,067 utils 23055 6170144768 Admin action logged: racy - LOGIN - Admin dashboard accessed
+INFO 2025-09-01 22:09:55,440 utils 23055 6186971136 Admin action logged: racy - LOGIN - Admin dashboard accessed
+INFO 2025-09-01 22:10:08,430 utils 23055 6186971136 Admin action logged: racy - LOGIN - Admin dashboard accessed
+INFO 2025-09-01 22:10:33,261 utils 23055 6186971136 Admin action logged: racy - LOGIN - Admin dashboard accessed
+INFO 2025-09-01 22:13:10,682 utils 23055 6186971136 Admin action logged: racy - CREATE - created event: Game Development
+INFO 2025-09-01 22:14:05,052 utils 23055 6186971136 Admin action logged: racy - CREATE - Student Rony was created
+INFO 2025-09-01 22:14:05,055 utils 23055 6186971136 Admin action logged: racy - UPDATE - Student Rony was updated
+INFO 2025-09-01 22:14:05,076 utils 23055 6186971136 Admin action logged: racy - CREATE - Payment JTC2025-743245922B4324 created for Rony
+INFO 2025-09-01 22:15:33,447 utils 23055 6186971136 Admin action logged: racy - LOGIN - Admin dashboard accessed
+INFO 2025-09-01 22:17:35,130 utils 23055 6170144768 Admin action logged: racy - LOGIN - Admin dashboard accessed
+INFO 2025-09-01 22:19:22,195 utils 23055 6170144768 Admin action logged: racy - LOGIN - Admin dashboard accessed
+INFO 2025-09-01 22:19:53,455 utils 23055 6170144768 Admin action logged: racy - UPDATE - Student Rony was updated
+INFO 2025-09-01 22:19:53,462 utils 23055 6170144768 Admin action logged: racy - PAYMENT_VERIFY - Payment JTC2025-743245922B4324 verified for Rony
+INFO 2025-09-01 22:19:53,469 utils 23055 6170144768 Admin action logged: racy - RECEIPT_GENERATE - Receipt JTC2025-0001 generated for Rony
+INFO 2025-09-01 22:19:53,471 utils 23055 6170144768 Admin action logged: racy - PAYMENT_VERIFY - Payment verified for Rony
+INFO 2025-09-01 22:20:04,078 utils 23055 6170144768 Admin action logged: racy - LOGIN - Admin dashboard accessed
+INFO 2025-09-01 22:20:40,948 utils 23055 6170144768 Admin action logged: racy - EMAIL_SENT - Registration email sent to racy19@gmail.com
+INFO 2025-09-01 22:32:33,206 utils 29127 6123778048 Admin action logged: racy - LOGIN - Admin dashboard accessed
+INFO 2025-09-02 16:45:22,285 utils 32623 6177714176 Admin action logged: daniel - LOGIN - Admin user logged in
+INFO 2025-09-02 16:46:01,665 utils 32623 6177714176 Admin action logged: daniel - LOGIN - Admin dashboard accessed
+INFO 2025-09-02 16:51:01,897 utils 32623 6160887808 Admin action logged: daniel - LOGIN - Admin dashboard accessed
+INFO 2025-09-02 17:13:16,893 utils 39205 6196916224 Admin action logged: daniel - LOGIN - Admin dashboard accessed
+INFO 2025-09-02 17:19:20,908 utils 40982 6168588288 Admin action logged: daniel - LOGIN - Admin dashboard accessed
+INFO 2025-09-02 17:20:08,459 utils 40982 6185414656 Admin action logged: daniel - LOGIN - Admin dashboard accessed
+INFO 2025-09-02 17:22:52,074 utils 40982 6168588288 Admin action logged: daniel - LOGIN - Admin dashboard accessed
+INFO 2025-09-02 17:23:08,107 utils 40982 6168588288 Admin action logged: daniel - LOGIN - Admin dashboard accessed
+INFO 2025-09-02 17:23:15,426 utils 40982 6168588288 Admin action logged: daniel - LOGIN - Admin dashboard accessed
+INFO 2025-09-02 17:34:10,681 utils 44532 6194130944 Admin action logged: daniel - LOGIN - Admin dashboard accessed

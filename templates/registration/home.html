@@ -1,0 +1,178 @@
+<!-- templates/registration/home.html -->
+{% extends 'base.html' %}
+
+{% block title %}Josephite Tech Carnival 2025 - Registration{% endblock %}
+
+{% block content %}
+<div class="relative">
+    <!-- Hero Section -->
+    <div class="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 text-white rounded-2xl overflow-hidden mb-12 shadow-2xl">
+        <div class="px-4 sm:px-8 py-12 md:py-24">
+            <div class="max-w-4xl mx-auto text-center">
+                <h1 class="text-3xl sm:text-4xl md:text-6xl font-bold mb-6 animate-pulse">
+                    🎉 Josephite Tech Carnival 2025
+                </h1>
+                <p class="text-lg sm:text-xl md:text-2xl mb-8 text-blue-100">
+                    Join the Ultimate Technology Competition & Showcase
+                </p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
+                    <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 sm:p-6">
+                        <div class="text-2xl sm:text-3xl font-bold text-yellow-300">{{ events.count }}</div>
+                        <div class="text-blue-100 text-sm sm:text-base">Exciting Events</div>
+                    </div>
+                    <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 sm:p-6">
+                        <div class="text-2xl sm:text-3xl font-bold text-green-300">{{ stats.total_registrations }}</div>
+                        <div class="text-blue-100 text-sm sm:text-base">Registered Students</div>
+                    </div>
+                    <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 sm:p-6">
+                        <div class="text-2xl sm:text-3xl font-bold text-pink-300">৳500</div>
+                        <div class="text-blue-100 text-sm sm:text-base">Per Event Fee</div>
+                    </div>
+                </div>
+                <a href="{% url 'register' %}" class="inline-flex items-center bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-xl text-base sm:text-lg transition-all transform hover:scale-105 shadow-lg">
+                    <i class="fas fa-rocket mr-2"></i>
+                    <span class="hidden sm:inline">Register Now - Start Your Journey!</span>
+                    <span class="sm:hidden">Register Now!</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Events Showcase -->
+    <div class="mb-12">
+        <h2 class="text-2xl sm:text-3xl font-bold text-center mb-8 text-gray-800">
+            <i class="fas fa-star text-yellow-500 mr-2"></i>
+            Available Events
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for event in events %}
+            <div class="group relative bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-primary/30 transform hover:-translate-y-1">
+                <!-- Event Card Header with Gradient -->
+                <div class="bg-gradient-to-r from-blue-500 to-purple-600 p-4 sm:p-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-lg sm:text-xl font-bold text-white">{{ event.name }}</h3>
+                        <div class="bg-white bg-opacity-20 backdrop-blur-sm rounded-full px-3 py-1">
+                            <span class="text-white text-sm font-semibold">৳{{ event.fee }}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center text-blue-100 text-sm">
+                        <i class="fas fa-calendar-alt mr-2"></i>
+                        <span>Registration Open</span>
+                    </div>
+                </div>
+                
+                <!-- Event Card Body -->
+                <div class="p-4 sm:p-6">
+                    <p class="text-gray-600 mb-4 text-sm sm:text-base leading-relaxed">{{ event.description }}</p>
+                    
+                    <!-- Event Features -->
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="bg-blue-50 text-blue-700 text-xs font-medium px-2 py-1 rounded-full">
+                            <i class="fas fa-trophy mr-1"></i>Prizes
+                        </span>
+                        <span class="bg-green-50 text-green-700 text-xs font-medium px-2 py-1 rounded-full">
+                            <i class="fas fa-certificate mr-1"></i>Certificate
+                        </span>
+                        <span class="bg-purple-50 text-purple-700 text-xs font-medium px-2 py-1 rounded-full">
+                            <i class="fas fa-users mr-1"></i>Team Event
+                        </span>
+                    </div>
+                    
+                    <!-- Register Button -->
+                    <a href="{% url 'register' %}" class="block w-full bg-gradient-to-r from-primary to-secondary text-white text-center py-2 sm:py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform group-hover:scale-105">
+                        <i class="fas fa-arrow-right mr-2"></i>Join This Event
+                    </a>
+                </div>
+                
+                <!-- Hover Effect Overlay -->
+                <div class="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+            </div>
+            {% empty %}
+            <div class="col-span-full text-center py-12">
+                <div class="bg-white rounded-xl shadow-md p-8 sm:p-12">
+                    <div class="bg-gray-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-calendar-times text-3xl text-gray-400"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-700 mb-2">No Events Available</h3>
+                    <p class="text-gray-500 mb-6">Events will be announced soon. Stay tuned!</p>
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <p class="text-blue-700 text-sm">
+                            <i class="fas fa-bell mr-2"></i>
+                            Subscribe to our newsletter to get notified when events are available
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Features -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8 mb-12 border-t-4 border-primary">
+        <h2 class="text-2xl sm:text-3xl font-bold text-center mb-8 text-gray-900">
+            <i class="fas fa-star text-yellow-500 mr-2"></i>
+            Why Join Josephite Tech Carnival?
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="text-center group">
+                <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors">
+                    <i class="fas fa-trophy text-blue-600 text-2xl"></i>
+                </div>
+                <h3 class="font-semibold mb-2">Compete & Win</h3>
+                <p class="text-gray-600 text-sm">Show your skills and win exciting prizes</p>
+            </div>
+            <div class="text-center group">
+                <div class="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-green-200 transition-colors">
+                    <i class="fas fa-certificate text-green-600 text-2xl"></i>
+                </div>
+                <h3 class="font-semibold mb-2">Get Certified</h3>
+                <p class="text-gray-600 text-sm">Receive participation certificates</p>
+            </div>
+            <div class="text-center group">
+                <div class="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-purple-200 transition-colors">
+                    <i class="fas fa-users text-purple-600 text-2xl"></i>
+                </div>
+                <h3 class="font-semibold mb-2">Network</h3>
+                <p class="text-gray-600 text-sm">Meet like-minded tech enthusiasts</p>
+            </div>
+            <div class="text-center group">
+                <div class="bg-yellow-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-yellow-200 transition-colors">
+                    <i class="fas fa-lightbulb text-yellow-600 text-2xl"></i>
+                </div>
+                <h3 class="font-semibold mb-2">Learn & Grow</h3>
+                <p class="text-gray-600 text-sm">Enhance your technical skills</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Registration Process -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8 border-t-4 border-secondary">
+        <h2 class="text-2xl sm:text-3xl font-bold text-center mb-8 text-gray-900">
+            <i class="fas fa-clipboard-list text-purple-600 mr-2"></i>
+            Simple Registration Process
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="text-center">
+                <div class="bg-blue-500 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold shadow-lg">1</div>
+                <h3 class="font-semibold mb-2">Fill Form</h3>
+                <p class="text-gray-600 text-sm">Enter your details and select events</p>
+            </div>
+            <div class="text-center">
+                <div class="bg-green-500 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold shadow-lg">2</div>
+                <h3 class="font-semibold mb-2">Choose Payment</h3>
+                <p class="text-gray-600 text-sm">Pay via bKash, Rocket, or Nagad</p>
+            </div>
+            <div class="text-center">
+                <div class="bg-purple-500 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold shadow-lg">3</div>
+                <h3 class="font-semibold mb-2">Get Receipt</h3>
+                <p class="text-gray-600 text-sm">Receive confirmation via email</p>
+            </div>
+            <div class="text-center">
+                <div class="bg-yellow-500 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold shadow-lg">4</div>
+                <h3 class="font-semibold mb-2">Participate</h3>
+                <p class="text-gray-600 text-sm">Join the carnival and compete!</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

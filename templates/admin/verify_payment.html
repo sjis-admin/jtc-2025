@@ -1,0 +1,425 @@
+<!-- templates/admin/verify_payment.html -->
+{% extends 'base.html' %}
+
+{% block title %}Verify Payment - Josephite Tech Club{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="flex items-center justify-between p-6">
+            <h1 class="text-3xl font-bold text-gray-800">
+                <i class="fas fa-search-dollar text-primary mr-2"></i>
+                Payment Verification
+            </h1>
+            <div class="flex items-center space-x-4">
+                <a href="{% url 'admin_payments' %}" class="text-primary hover:text-blue-700 transition-colors">
+                    <i class="fas fa-arrow-left mr-1"></i>Back to Payments
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="bg-white border-b">
+        <nav class="flex space-x-8 px-6">
+            <a href="{% url 'admin_dashboard' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-home mr-1"></i>Dashboard
+            </a>
+            <a href="{% url 'admin_students' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-users mr-1"></i>Students
+            </a>
+            <a href="{% url 'admin_payments' %}" class="py-4 px-1 border-b-2 border-primary text-primary font-medium">
+                <i class="fas fa-credit-card mr-1"></i>Payments
+            </a>
+            <a href="{% url 'admin_events' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-calendar mr-1"></i>Events
+            </a>
+            <a href="{% url 'admin_reports' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-chart-bar mr-1"></i>Reports
+            </a>
+            <a href="{% url 'admin_logs' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-history mr-1"></i>Logs
+            </a>
+        </nav>
+    </div>
+
+    <div class="p-6">
+        <div class="max-w-4xl mx-auto">
+            <!-- Payment Status Alert -->
+            {% if payment.status == 'PENDING' %}
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-yellow-700">
+                            This payment is currently pending verification. Please review the details and take appropriate action.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% elif payment.status == 'SUCCESS' %}
+            <div class="bg-green-50 border-l-4 border-green-400 p-4 mb-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-check-circle text-green-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-green-700">
+                            This payment has been successfully verified and completed.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% elif payment.status == 'FAILED' %}
+            <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-times-circle text-red-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-red-700">
+                            This payment has been marked as failed or rejected.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Student Information -->
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-800">
+                            <i class="fas fa-user text-blue-500 mr-2"></i>
+                            Student Information
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-sm font-medium text-gray-500">Name</label>
+                                <p class="text-lg font-semibold text-gray-900">{{ payment.student.name }}</p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-sm font-medium text-gray-500">Grade</label>
+                                    <p class="text-gray-900">Grade {{ payment.student.grade }}</p>
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium text-gray-500">Group</label>
+                                    <p class="text-gray-900">Group {{ payment.student.group }}</p>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-500">School/College</label>
+                                <p class="text-gray-900">{{ payment.student.school_college }}</p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-sm font-medium text-gray-500">Phone</label>
+                                    <p class="text-gray-900">{{ payment.student.mobile_number }}</p>
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium text-gray-500">Email</label>
+                                    <p class="text-gray-900">{{ payment.student.email }}</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-sm font-medium text-gray-500">Roll Number</label>
+                                    <p class="text-gray-900">{{ payment.student.roll }}</p>
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium text-gray-500">Section</label>
+                                    <p class="text-gray-900">{{ payment.student.section|default:"N/A" }}</p>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-500">Registration Date</label>
+                                <p class="text-gray-900">{{ payment.student.created_at|date:"M j, Y g:i A" }}</p>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-500">Registration ID</label>
+                                <p class="text-gray-900 font-mono text-sm bg-gray-100 p-2 rounded">{{ payment.student.registration_id }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Details -->
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-800">
+                            <i class="fas fa-credit-card text-green-500 mr-2"></i>
+                            Payment Details
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <span class="text-sm font-medium text-gray-500">Amount</span>
+                                <span class="text-xl font-bold text-green-600">৳{{ payment.amount|floatformat:0 }}</span>
+                            </div>
+                            
+                            <div>
+                                <label class="text-sm font-medium text-gray-500">Payment Method</label>
+                                <div class="flex items-center mt-1">
+                                    {% if payment.payment_method == 'BKASH' %}
+                                        <div class="w-8 h-8 bg-pink-500 text-white rounded-full flex items-center justify-center mr-2">
+                                            <i class="fas fa-mobile-alt text-sm"></i>
+                                        </div>
+                                        <span class="text-gray-900 font-medium">bKash</span>
+                                    {% elif payment.payment_method == 'ROCKET' %}
+                                        <div class="w-8 h-8 bg-purple-500 text-white rounded-full flex items-center justify-center mr-2">
+                                            <i class="fas fa-rocket text-sm"></i>
+                                        </div>
+                                        <span class="text-gray-900 font-medium">Rocket</span>
+                                    {% elif payment.payment_method == 'NAGAD' %}
+                                        <div class="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center mr-2">
+                                            <i class="fas fa-wallet text-sm"></i>
+                                        </div>
+                                        <span class="text-gray-900 font-medium">Nagad</span>
+                                    {% elif payment.payment_method == 'CARD' %}
+                                        <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center mr-2">
+                                            <i class="fas fa-credit-card text-sm"></i>
+                                        </div>
+                                        <span class="text-gray-900 font-medium">Credit/Debit Card</span>
+                                    {% else %}
+                                        <div class="w-8 h-8 bg-gray-500 text-white rounded-full flex items-center justify-center mr-2">
+                                            <i class="fas fa-question text-sm"></i>
+                                        </div>
+                                        <span class="text-gray-900 font-medium">{{ payment.payment_method|default:"Unknown" }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            {% if payment.transaction_id %}
+                            <div>
+                                <label class="text-sm font-medium text-gray-500">Transaction ID</label>
+                                <p class="text-gray-900 font-mono bg-gray-100 p-2 rounded border">{{ payment.transaction_id }}</p>
+                            </div>
+                            {% endif %}
+
+                            <div>
+                                <label class="text-sm font-medium text-gray-500">Current Status</label>
+                                <div class="mt-1">
+                                    {% if payment.status == 'PENDING' %}
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                                            <i class="fas fa-clock mr-1"></i>Pending
+                                        </span>
+                                    {% elif payment.status == 'SUCCESS' %}
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                            <i class="fas fa-check mr-1"></i>Success
+                                        </span>
+                                    {% elif payment.status == 'FAILED' %}
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                                            <i class="fas fa-times mr-1"></i>Failed
+                                        </span>
+                                    {% elif payment.status == 'CANCELLED' %}
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                                            <i class="fas fa-ban mr-1"></i>Cancelled
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                                            <i class="fas fa-question mr-1"></i>{{ payment.status }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-sm font-medium text-gray-500">Payment Date</label>
+                                    <p class="text-gray-900">{{ payment.created_at|date:"M j, Y" }}</p>
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium text-gray-500">Payment Time</label>
+                                    <p class="text-gray-900">{{ payment.created_at|date:"g:i A" }}</p>
+                                </div>
+                            </div>
+
+                            {% if payment.updated_at != payment.created_at %}
+                            <div>
+                                <label class="text-sm font-medium text-gray-500">Last Updated</label>
+                                <p class="text-gray-900">{{ payment.updated_at|date:"M j, Y g:i A" }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Events Information -->
+            {% if payment.student.events.all %}
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden mt-6">
+                <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800">
+                        <i class="fas fa-calendar-alt text-purple-500 mr-2"></i>
+                        Registered Events
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% for event in payment.student.events.all %}
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-medium text-gray-900 mb-2">{{ event.name }}</h4>
+                            <p class="text-sm text-gray-600 mb-3">{{ event.description|truncatechars:100 }}</p>
+                            <div class="flex items-center justify-between text-xs text-gray-500">
+                                <span>
+                                    <i class="fas fa-money-bill mr-1"></i>
+                                    ৳{{ event.fee|floatformat:0 }}
+                                </span>
+                                <span class="{% if event.is_active %}text-green-600{% else %}text-red-600{% endif %}">
+                                    <i class="fas fa-{% if event.is_active %}check-circle{% else %}times-circle{% endif %} mr-1"></i>
+                                    {% if event.is_active %}Active{% else %}Inactive{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium text-blue-800">Total Registration Amount:</span>
+                            <span class="text-lg font-bold text-blue-900">৳{{ payment.student.total_amount|floatformat:0 }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Action Buttons -->
+            {% if payment.status == 'PENDING' %}
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden mt-6">
+                <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800">
+                        <i class="fas fa-cogs text-gray-600 mr-2"></i>
+                        Payment Actions
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center space-x-4">
+                        <form method="post" action="{% url 'admin_verify_payment' payment.id %}" class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="approve">
+                            <button type="submit" 
+                                    onclick="return confirm('Are you sure you want to approve this payment?')"
+                                    class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors">
+                                <i class="fas fa-check mr-2"></i>Approve Payment
+                            </button>
+                        </form>
+                        
+                        <form method="post" action="{% url 'admin_verify_payment' payment.id %}" class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="reject">
+                            <button type="submit" 
+                                    onclick="return confirm('Are you sure you want to reject this payment? This action cannot be undone.')"
+                                    class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors">
+                                <i class="fas fa-times mr-2"></i>Reject Payment
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div class="mt-4 p-4 bg-yellow-50 rounded-lg">
+                        <h4 class="text-sm font-medium text-yellow-800 mb-2">
+                            <i class="fas fa-info-circle mr-1"></i>Important Notes:
+                        </h4>
+                        <ul class="text-sm text-yellow-700 space-y-1">
+                            <li>• Approving the payment will mark it as successful and update the student's payment status.</li>
+                            <li>• Rejecting the payment will mark it as failed and may require manual follow-up with the student.</li>
+                            <li>• Make sure to verify the transaction details before taking any action.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Payment History/Logs -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden mt-6">
+                <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800">
+                        <i class="fas fa-history text-gray-600 mr-2"></i>
+                        Payment History
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-3">
+                        <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                            <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center">
+                                <i class="fas fa-plus text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">Payment initiated</p>
+                                <p class="text-xs text-gray-500">{{ payment.created_at|date:"M j, Y g:i A" }}</p>
+                            </div>
+                            <span class="text-sm text-gray-600">৳{{ payment.amount|floatformat:0 }}</span>
+                        </div>
+                        
+                        {% if payment.status == 'SUCCESS' %}
+                        <div class="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
+                            <div class="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center">
+                                <i class="fas fa-check text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">Payment verified and completed</p>
+                                <p class="text-xs text-gray-500">{{ payment.updated_at|date:"M j, Y g:i A" }}</p>
+                            </div>
+                        </div>
+                        {% elif payment.status == 'FAILED' %}
+                        <div class="flex items-center space-x-3 p-3 bg-red-50 rounded-lg">
+                            <div class="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center">
+                                <i class="fas fa-times text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">Payment rejected or failed</p>
+                                <p class="text-xs text-gray-500">{{ payment.updated_at|date:"M j, Y g:i A" }}</p>
+                            </div>
+                        </div>
+                        {% elif payment.status == 'CANCELLED' %}
+                        <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                            <div class="w-8 h-8 bg-gray-500 text-white rounded-full flex items-center justify-center">
+                                <i class="fas fa-ban text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">Payment cancelled</p>
+                                <p class="text-xs text-gray-500">{{ payment.updated_at|date:"M j, Y g:i A" }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-refresh status for pending payments
+{% if payment.status == 'PENDING' %}
+setInterval(function() {
+    // Check for status updates every 30 seconds
+    fetch(window.location.href, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    }).then(response => {
+        if (response.ok && response.headers.get('content-type').includes('application/json')) {
+            return response.json();
+        }
+    }).then(data => {
+        if (data && data.status !== '{{ payment.status }}') {
+            // Reload the page if status changed
+            window.location.reload();
+        }
+    }).catch(error => {
+        console.log('Status check failed:', error);
+    });
+}, 30000);
+{% endif %}
+</script>
+{% endblock %}

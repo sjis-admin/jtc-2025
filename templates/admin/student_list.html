@@ -1,0 +1,504 @@
+<!-- templates/admin/student_list.html -->
+{% extends 'base.html' %}
+
+{% block title %}Students Management - Josephite Tech Club{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="flex items-center justify-between p-6">
+            <h1 class="text-3xl font-bold text-gray-800">
+                <i class="fas fa-users text-primary mr-2"></i>
+                Students Management
+            </h1>
+            <div class="flex items-center space-x-4">
+                <span class="text-gray-600">{{ page_obj.paginator.count }} Total Students</span>
+                <a href="{% url 'admin_dashboard' %}" class="text-primary hover:text-blue-700 transition-colors">
+                    <i class="fas fa-arrow-left mr-1"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="bg-white border-b">
+        <nav class="flex space-x-8 px-6">
+            <a href="{% url 'admin_dashboard' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-home mr-1"></i>Dashboard
+            </a>
+            <a href="{% url 'admin_students' %}" class="py-4 px-1 border-b-2 border-primary text-primary font-medium">
+                <i class="fas fa-users mr-1"></i>Students
+            </a>
+            <a href="{% url 'admin_payments' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-credit-card mr-1"></i>Payments
+            </a>
+            <a href="{% url 'admin_events' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-calendar mr-1"></i>Events
+            </a>
+            <a href="{% url 'admin_reports' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-chart-bar mr-1"></i>Reports
+            </a>
+            <a href="{% url 'admin_logs' %}" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                <i class="fas fa-history mr-1"></i>Logs
+            </a>
+        </nav>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="bg-white p-6 border-b">
+        <form method="GET" class="space-y-4">
+            <!-- Search Bar -->
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="flex-1">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                        <input type="text" name="search" value="{{ search_query }}" 
+                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="Search by name, email, school, or roll number...">
+                    </div>
+                </div>
+                <button type="submit" class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-search mr-2"></i>Search
+                </button>
+            </div>
+
+            <!-- Filter Options -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Payment Status Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
+                    <select name="payment" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">All Payments</option>
+                        <option value="paid" {% if payment_filter == 'paid' %}selected{% endif %}>Paid</option>
+                        <option value="unpaid" {% if payment_filter == 'unpaid' %}selected{% endif %}>Unpaid</option>
+                    </select>
+                </div>
+
+                <!-- Group Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Group</label>
+                    <select name="group" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">All Groups</option>
+                        {% for group_code, group_name in groups %}
+                        <option value="{{ group_code }}" {% if group_filter == group_code %}selected{% endif %}>
+                            {{ group_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Grade Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Grade</label>
+                    <select name="grade" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">All Grades</option>
+                        {% for grade_code, grade_name in grades %}
+                        <option value="{{ grade_code }}" {% if grade_filter == grade_code %}selected{% endif %}>
+                            {{ grade_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Clear Filters -->
+                <div class="flex items-end">
+                    <a href="{% url 'admin_students' %}" class="w-full bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors text-center">
+                        <i class="fas fa-times mr-2"></i>Clear Filters
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Bulk Actions -->
+    <div class="bg-white px-6 py-3 border-b">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <label class="flex items-center">
+                    <input type="checkbox" id="select-all" class="rounded border-gray-300 text-primary focus:ring-primary">
+                    <span class="ml-2 text-sm text-gray-700">Select All</span>
+                </label>
+                <span id="selected-count" class="text-sm text-gray-500">0 selected</span>
+            </div>
+            <div class="flex items-center space-x-2" id="bulk-actions" style="display: none;">
+                <button class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 transition-colors" onclick="bulkAction('mark-paid')">
+                    <i class="fas fa-check mr-1"></i>Mark as Paid
+                </button>
+                <button class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition-colors" onclick="bulkAction('mark-unpaid')">
+                    <i class="fas fa-times mr-1"></i>Mark as Unpaid
+                </button>
+                <button class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors" onclick="bulkAction('send-email')">
+                    <i class="fas fa-envelope mr-1"></i>Send Email
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Students Table -->
+    <div class="bg-white shadow-lg rounded-lg m-6 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <input type="checkbox" class="rounded border-gray-300" style="visibility: hidden;">
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Student Details
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            School/Grade
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Events
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Amount
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Payment Status
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Registered
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for student in page_obj %}
+                    <tr class="hover:bg-gray-50 transition-colors" data-student-id="{{ student.id }}">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <input type="checkbox" class="student-checkbox rounded border-gray-300 text-primary focus:ring-primary" value="{{ student.id }}">
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10">
+                                    <div class="h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">
+                                        {{ student.name|first|upper }}
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">{{ student.name }}</div>
+                                    <div class="text-sm text-gray-500">{{ student.email }}</div>
+                                    <div class="text-xs text-gray-400">{{ student.mobile_number }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-gray-900">{{ student.school_college|truncatechars:30 }}</div>
+                            <div class="text-sm text-gray-500">
+                                Grade {{ student.grade }} - Group {{ student.group }}
+                                {% if student.section %}
+                                <div class="text-xs text-gray-400">Section: {{ student.section }}</div>
+                                {% endif %}
+                                <div class="text-xs text-gray-400">Roll: {{ student.roll }}</div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex flex-wrap gap-1">
+                                {% for event in student.events.all %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                    {{ event.name|truncatechars:15 }}
+                                </span>
+                                {% empty %}
+                                <span class="text-sm text-gray-400">No events</span>
+                                {% endfor %}
+                            </div>
+                            <div class="text-xs text-gray-500 mt-1">{{ student.events.count }} event(s)</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">৳{{ student.total_amount|floatformat:0 }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if student.is_paid %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <i class="fas fa-check-circle mr-1"></i>
+                                    Paid
+                                    {% if student.payment_verified %}
+                                    <i class="fas fa-shield-alt ml-1" title="Verified"></i>
+                                    {% endif %}
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    Pending
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ student.created_at|date:"M j, Y" }}</div>
+                            <div class="text-sm text-gray-500">{{ student.created_at|date:"g:i A" }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex items-center space-x-2">
+                                <a href="{% url 'admin_student_detail' student.id %}" 
+                                   class="text-indigo-600 hover:text-indigo-900 transition-colors" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if student.is_paid %}
+                                <a href="{% url 'generate_receipt' student.id %}" 
+                                   class="text-green-600 hover:text-green-900 transition-colors" title="Generate Receipt">
+                                    <i class="fas fa-receipt"></i>
+                                </a>
+                                <a href="{% url 'send_email' student.id %}" 
+                                   class="text-blue-600 hover:text-blue-900 transition-colors" title="Send Email">
+                                    <i class="fas fa-envelope"></i>
+                                </a>
+                                {% endif %}
+                                <button class="text-red-600 hover:text-red-900 transition-colors" title="Delete" 
+                                        onclick="confirmDelete({{ student.id }}, '{{ student.name }}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-6 py-12 text-center">
+                            <div class="text-gray-500">
+                                <i class="fas fa-users text-4xl mb-4"></i>
+                                <div class="text-lg font-medium">No students found</div>
+                                <div class="text-sm">
+                                    {% if search_query or payment_filter or group_filter or grade_filter %}
+                                    Try adjusting your search criteria or <a href="{% url 'admin_students' %}" class="text-primary hover:text-blue-700">clear all filters</a>.
+                                    {% else %}
+                                    Students will appear here after registration.
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 mx-6 mb-6 rounded-lg shadow">
+        <div class="flex-1 flex justify-between sm:hidden">
+            {% if page_obj.has_previous %}
+            <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if payment_filter %}payment={{ payment_filter }}&{% endif %}{% if group_filter %}group={{ group_filter }}&{% endif %}{% if grade_filter %}grade={{ grade_filter }}&{% endif %}page={{ page_obj.previous_page_number }}"
+               class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                Previous
+            </a>
+            {% endif %}
+            {% if page_obj.has_next %}
+            <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if payment_filter %}payment={{ payment_filter }}&{% endif %}{% if group_filter %}group={{ group_filter }}&{% endif %}{% if grade_filter %}grade={{ grade_filter }}&{% endif %}page={{ page_obj.next_page_number }}"
+               class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                Next
+            </a>
+            {% endif %}
+        </div>
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+                <p class="text-sm text-gray-700">
+                    Showing <span class="font-medium">{{ page_obj.start_index }}</span> to <span class="font-medium">{{ page_obj.end_index }}</span> of <span class="font-medium">{{ page_obj.paginator.count }}</span> results
+                </p>
+            </div>
+            <div>
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                    {% if page_obj.has_previous %}
+                    <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if payment_filter %}payment={{ payment_filter }}&{% endif %}{% if group_filter %}group={{ group_filter }}&{% endif %}{% if grade_filter %}grade={{ grade_filter }}&{% endif %}page={{ page_obj.previous_page_number }}"
+                       class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <span class="relative inline-flex items-center px-4 py-2 border border-primary bg-primary text-sm font-medium text-white">
+                        {{ num }}
+                    </span>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if payment_filter %}payment={{ payment_filter }}&{% endif %}{% if group_filter %}group={{ group_filter }}&{% endif %}{% if grade_filter %}grade={{ grade_filter }}&{% endif %}page={{ num }}"
+                       class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        {{ num }}
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if payment_filter %}payment={{ payment_filter }}&{% endif %}{% if group_filter %}group={{ group_filter }}&{% endif %}{% if grade_filter %}grade={{ grade_filter }}&{% endif %}page={{ page_obj.next_page_number }}"
+                       class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <i class="fas fa-exclamation-triangle text-red-600"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900" id="deleteModalTitle">Delete Student</h3>
+            <div class="mt-2 px-7 py-3">
+                <p class="text-sm text-gray-500" id="deleteModalMessage">
+                    Are you sure you want to delete this student? This action cannot be undone.
+                </p>
+            </div>
+            <div class="items-center px-4 py-3">
+                <button id="confirmDeleteBtn" class="px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300 mr-2">
+                    Delete
+                </button>
+                <button onclick="closeDeleteModal()" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let selectedStudents = [];
+
+// Handle select all checkbox
+document.getElementById('select-all').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.student-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+    updateSelectedCount();
+    toggleBulkActions();
+});
+
+// Handle individual checkboxes
+document.querySelectorAll('.student-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        updateSelectedCount();
+        toggleBulkActions();
+        
+        // Update select all checkbox state
+        const allCheckboxes = document.querySelectorAll('.student-checkbox');
+        const selectAllCheckbox = document.getElementById('select-all');
+        selectAllCheckbox.checked = Array.from(allCheckboxes).every(cb => cb.checked);
+    });
+});
+
+function updateSelectedCount() {
+    const checkedBoxes = document.querySelectorAll('.student-checkbox:checked');
+    selectedStudents = Array.from(checkedBoxes).map(cb => cb.value);
+    document.getElementById('selected-count').textContent = `${selectedStudents.length} selected`;
+}
+
+function toggleBulkActions() {
+    const bulkActions = document.getElementById('bulk-actions');
+    if (selectedStudents.length > 0) {
+        bulkActions.style.display = 'flex';
+    } else {
+        bulkActions.style.display = 'none';
+    }
+}
+
+function bulkAction(action) {
+    if (selectedStudents.length === 0) {
+        alert('Please select at least one student.');
+        return;
+    }
+    
+    let message = '';
+    switch(action) {
+        case 'mark-paid':
+            message = `Mark ${selectedStudents.length} student(s) as paid?`;
+            break;
+        case 'mark-unpaid':
+            message = `Mark ${selectedStudents.length} student(s) as unpaid?`;
+            break;
+        case 'send-email':
+            message = `Send confirmation email to ${selectedStudents.length} student(s)?`;
+            break;
+    }
+    
+    if (confirm(message)) {
+        // Create form and submit
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/dashboard/bulk-action/';
+        
+        // Add CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+        
+        // Add action
+        const actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = action;
+        form.appendChild(actionInput);
+        
+        // Add selected students
+        selectedStudents.forEach(studentId => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'student_ids';
+            input.value = studentId;
+            form.appendChild(input);
+        });
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Delete confirmation
+let studentToDelete = null;
+
+function confirmDelete(studentId, studentName) {
+    studentToDelete = studentId;
+    document.getElementById('deleteModalMessage').textContent = 
+        `Are you sure you want to delete ${studentName}? This action cannot be undone.`;
+    document.getElementById('deleteModal').classList.remove('hidden');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.add('hidden');
+    studentToDelete = null;
+}
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+    if (studentToDelete) {
+        // Create form and submit delete request
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/dashboard/delete-student/${studentToDelete}/`;
+        
+        // Add CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+});
+
+// Close modal when clicking outside
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDeleteModal();
+    }
+});
+</script>
+{% endblock %}

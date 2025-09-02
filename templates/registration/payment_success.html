@@ -1,0 +1,91 @@
+<!-- templates/registration/payment_success.html -->
+{% extends 'base.html' %}
+
+{% block title %}Payment Successful - Josephite Tech Carnival 2025{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto text-center">
+    <div class="bg-white rounded-2xl shadow-xl p-8">
+        <!-- Success Icon -->
+        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <i class="fas fa-check-circle text-green-500 text-4xl"></i>
+        </div>
+        
+        <h1 class="text-3xl font-bold text-gray-800 mb-4">Payment Successful!</h1>
+        <p class="text-gray-600 text-lg mb-8">
+            Congratulations! Your registration for Josephite Tech Carnival 2025 has been completed successfully.
+        </p>
+        
+        <!-- Student Details -->
+        <div class="bg-gray-50 rounded-lg p-6 mb-8 text-left">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Registration Details</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <span class="text-sm text-gray-500">Name:</span>
+                    <div class="font-medium">{{ student.name }}</div>
+                </div>
+                <div>
+                    <span class="text-sm text-gray-500">Registration ID:</span>
+                    <div class="font-medium">{{ student.registration_id }}</div>
+                </div>
+                <div>
+                    <span class="text-sm text-gray-500">School/College:</span>
+                    <div class="font-medium">{{ student.school_college }}</div>
+                </div>
+                <div>
+                    <span class="text-sm text-gray-500">Grade:</span>
+                    <div class="font-medium">Grade {{ student.grade }} ({{ student.get_group_display }})</div>
+                </div>
+                <div>
+                    <span class="text-sm text-gray-500">Email:</span>
+                    <div class="font-medium">{{ student.email }}</div>
+                </div>
+                <div>
+                    <span class="text-sm text-gray-500">Total Amount Paid:</span>
+                    <div class="font-medium text-green-600">৳{{ student.total_amount }}</div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <span class="text-sm text-gray-500">Selected Events:</span>
+                <div class="flex flex-wrap gap-2 mt-1">
+                    {% for event in student.events.all %}
+                        <span class="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">{{ event.name }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Next Steps -->
+        <div class="bg-blue-50 rounded-lg p-6 mb-8">
+            <h3 class="text-lg font-semibold text-blue-800 mb-4">What's Next?</h3>
+            <ul class="text-blue-700 space-y-2">
+                <li class="flex items-center justify-center">
+                    <i class="fas fa-envelope text-blue-500 mr-2"></i>
+                    Check your email for the registration confirmation
+                </li>
+                <li class="flex items-center justify-center">
+                    <i class="fas fa-calendar-alt text-blue-500 mr-2"></i>
+                    Event details will be shared via email
+                </li>
+                <li class="flex items-center justify-center">
+                    <i class="fas fa-certificate text-blue-500 mr-2"></i>
+                    Participation certificates will be sent after the event
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="{% url 'home' %}" class="bg-primary hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors">
+                <i class="fas fa-home mr-2"></i>
+                Back to Home
+            </a>
+            <button onclick="window.print()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition-colors">
+                <i class="fas fa-print mr-2"></i>
+                Print Receipt
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
