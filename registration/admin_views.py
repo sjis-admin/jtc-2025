@@ -12,6 +12,7 @@ from django.http import FileResponse
 from django.contrib.auth.models import User
 from datetime import datetime, timedelta
 from xhtml2pdf import pisa
+from django.contrib.auth import logout
 from io import BytesIO
 
 @staff_member_required
@@ -74,6 +75,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+import json
+
 @staff_member_required
 def dashboard(request):
     """Admin Dashboard Home"""
@@ -109,18 +112,30 @@ def dashboard(request):
     group_stats = Student.objects.values('group').annotate(count=Count('id')).order_by('group')
     
     # Daily registration trends (last 7 days)
-    seven_days_ago = timezone.now() - timedelta(days=7)
+    seven_days_ago = timezone.now().date() - timedelta(days=6)
+    
+    # Fetch data in a single query
+    daily_data = Student.objects.filter(
+        created_at__date__gte=seven_days_ago
+    ).values('created_at__date').annotate(
+        total_count=Count('id'),
+        paid_count=Count('id', filter=Q(is_paid=True))
+    ).order_by('created_at__date')
+    
+    # Create a dictionary for quick lookups
+    data_map = {item['created_at__date']: item for item in daily_data}
+    
+    # Prepare the final list for the template
     daily_registrations = []
     for i in range(7):
         date = seven_days_ago + timedelta(days=i)
-        count = Student.objects.filter(
-            created_at__date=date.date()
-        ).count()
+        data = data_map.get(date)
         daily_registrations.append({
-            'date': date,
-            'count': count
+            'date': date.strftime('%a, %b %d'),
+            'total_count': data['total_count'] if data else 0,
+            'paid_count': data['paid_count'] if data else 0,
         })
-    
+
     context = {
         'total_students': total_students,
         'paid_students': paid_students,
@@ -131,7 +146,7 @@ def dashboard(request):
         'payment_stats': payment_stats,
         'event_stats': event_stats,
         'group_stats': group_stats,
-        'daily_registrations': daily_registrations,
+        'daily_registrations': json.dumps(daily_registrations),
     }
     
     return render(request, 'admin/dashboard.html', context)
@@ -147,8 +162,9 @@ def student_list(request):
         students = students.filter(
             Q(name__icontains=search_query) |
             Q(email__icontains=search_query) |
-            Q(school_college__icontains=search_query) |
-            Q(roll__icontains=search_query)
+            Q(school_college__name__icontains=search_query) |
+            Q(roll__icontains=search_query) |
+            Q(registration_id__icontains=search_query)
         )
     
     # Filter by payment status
@@ -219,6 +235,15 @@ def payment_list(request):
             Q(student__name__icontains=search_query)
         )
     
+    # Calculate statistics
+    stats = payments.aggregate(
+        successful_payments=Count('id', filter=Q(status='SUCCESS')),
+        pending_payments=Count('id', filter=Q(status='PENDING')),
+        failed_payments=Count('id', filter=Q(status='FAILED')),
+        total_revenue=Sum('amount', filter=Q(status='SUCCESS'))
+    )
+    stats['total_revenue'] = stats['total_revenue'] or 0
+
     # Pagination
     paginator = Paginator(payments, 25)
     page_number = request.GET.get('page')
@@ -229,6 +254,7 @@ def payment_list(request):
         'status_filter': status_filter,
         'search_query': search_query,
         'status_choices': Payment.PAYMENT_STATUS_CHOICES,
+        'stats': stats,
     }
     
     return render(request, 'admin/payment_list.html', context)
@@ -296,13 +322,20 @@ def verify_payment(request, payment_id):
 def event_list(request):
     """List all events with registration statistics"""
     events = Event.objects.annotate(
-        registration_count=Count('student'),
+        registration_count=Count('student', filter=Q(student__is_paid=True)),
         total_revenue=Sum('student__payments__amount', 
                          filter=Q(student__payments__status='SUCCESS'))
     ).order_by('-created_at')
     
+    active_events_count = events.filter(is_active=True).count()
+    total_registrations = sum(event.registration_count for event in events if event.registration_count)
+    total_revenue = sum(event.total_revenue for event in events if event.total_revenue)
+    
     context = {
         'events': events,
+        'active_events_count': active_events_count,
+        'total_registrations': total_registrations,
+        'total_revenue': total_revenue,
     }
     
     return render(request, 'admin/event_list.html', context)
@@ -337,24 +370,33 @@ def admin_logs(request):
     
     # Calculate statistics efficiently
     stats_queryset = AdminLog.objects.values('action').annotate(count=Count('id'))
-    stats = {item['action'].lower() + '_count': item['count'] for item in stats_queryset}
-    
+    stats_map = {item['action']: item['count'] for item in stats_queryset}
+
+    stats_cards = []
+    for action_code, action_name in AdminLog.ACTION_CHOICES:
+        count = stats_map.get(action_code, 0)
+        icon, color = get_action_style(action_code)
+        stats_cards.append({
+            'name': action_name,
+            'count': count,
+            'icon': icon,
+            'color': color,
+        })
+
     # Get most active user
     most_active_user_data = AdminLog.objects.values('admin_user__username', 'admin_user__first_name', 'admin_user__last_name').annotate(
         count=Count('id')
     ).order_by('-count').first()
     
+    most_active_user = None
     if most_active_user_data:
         if most_active_user_data['admin_user__first_name']:
-            stats['most_active_user'] = f"{most_active_user_data['admin_user__first_name']} {most_active_user_data['admin_user__last_name'] or ''}".strip()
+            most_active_user = f"{most_active_user_data['admin_user__first_name']} {most_active_user_data['admin_user__last_name'] or ''}".strip()
         else:
-            stats['most_active_user'] = most_active_user_data['admin_user__username']
-    else:
-        stats['most_active_user'] = None
-    
+            most_active_user = most_active_user_data['admin_user__username']
+
     # Get latest activity
     latest_log = AdminLog.objects.order_by('-timestamp').first()
-    stats['latest_activity'] = latest_log.timestamp if latest_log else None
     
     # Pagination
     paginator = Paginator(logs, 50)
@@ -363,7 +405,6 @@ def admin_logs(request):
     
     # Get unique users and actions for filters
     users = User.objects.filter(adminlog__isnull=False).distinct().order_by('username')
-    actions = AdminLog.ACTION_CHOICES
     
     context = {
         'page_obj': page_obj,
@@ -371,11 +412,33 @@ def admin_logs(request):
         'action_filter': action_filter,
         'date_range_filter': date_range_filter,
         'users': users,
-        'actions': actions,
-        'stats': stats,
+        'actions': AdminLog.ACTION_CHOICES,
+        'stats_cards': stats_cards,
+        'most_active_user': most_active_user,
+        'latest_activity': latest_log.timestamp if latest_log else None,
     }
     
     return render(request, 'admin/admin_logs.html', context)
+
+def get_action_style(action_code):
+    if action_code == 'CREATE':
+        return 'fa-plus-circle', 'blue'
+    elif action_code == 'UPDATE':
+        return 'fa-edit', 'yellow'
+    elif action_code == 'DELETE':
+        return 'fa-trash', 'red'
+    elif action_code == 'LOGIN':
+        return 'fa-sign-in-alt', 'green'
+    elif action_code == 'LOGOUT':
+        return 'fa-sign-out-alt', 'gray'
+    elif action_code == 'PAYMENT_VERIFY':
+        return 'fa-check-circle', 'emerald'
+    elif action_code == 'RECEIPT_GENERATE':
+        return 'fa-receipt', 'purple'
+    elif action_code == 'EMAIL_SENT':
+        return 'fa-envelope', 'indigo'
+    else:
+        return 'fa-cog', 'gray'
 
 @staff_member_required
 def reports(request):
@@ -395,7 +458,7 @@ def reports(request):
     ).order_by('-registrations')
     
     # School-wise breakdown
-    school_breakdown = Student.objects.values('school_college').annotate(
+    school_breakdown = Student.objects.values('school_college__name').annotate(
         count=Count('id'),
         paid_count=Count('id', filter=Q(is_paid=True))
     ).order_by('-count')[:10]
@@ -615,3 +678,10 @@ def delete_student(request, student_id):
         messages.success(request, f'Student {student_name} has been deleted.')
     
     return redirect('admin_students')
+
+@staff_member_required
+def logout_view(request):
+    """Log out the admin user."""
+    logout(request)
+    messages.success(request, "You have been successfully logged out.")
+    return redirect('admin:login')

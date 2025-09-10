@@ -1,5 +1,0 @@
-WARNING 2025-09-01 22:14:05,084 utils 23055 6186971136 Security alert: PAYMENT_ERROR - Payment gateway error: 'School' object is not subscriptable - IP: 127.0.0.1
-WARNING 2025-09-02 16:23:36,677 utils 24842 6165409792 Security alert: RATE_LIMIT - Rate limit exceeded for register - IP: 127.0.0.1
-WARNING 2025-09-02 16:23:36,680 utils 24842 6165409792 Security alert: RATE_LIMIT - Registration rate limit exceeded - IP: 127.0.0.1
-WARNING 2025-09-02 16:23:48,552 utils 24842 6165409792 Security alert: RATE_LIMIT - Rate limit exceeded for register - IP: 127.0.0.1
-WARNING 2025-09-02 16:23:48,555 utils 24842 6165409792 Security alert: RATE_LIMIT - Registration rate limit exceeded - IP: 127.0.0.1

@@ -21,17 +21,13 @@ from decimal import Decimal
 import qrcode
 import io
 
-from .models import Student, Event, Payment, Receipt, StudentEventRegistration, PaymentAttempt, School
-from .forms import StudentRegistrationForm
-from .utils import (
-    get_client_ip, rate_limit_check, sanitize_payment_data, validate_student_data,
-    verify_payment_amount, generate_secure_transaction_id, send_notification_email,
-    log_security_alert, detect_suspicious_activity, verify_sslcommerz_callback,
-    generate_sslcommerz_hash, log_admin_action
-)
+import logging
 
 logger = logging.getLogger(__name__)
-security_logger = logging.getLogger('registration.security')
+
+from .models import Student, Event, Payment, Receipt, StudentEventRegistration, PaymentAttempt, School, Team, TeamMember, Countdown
+from .forms import StudentRegistrationForm
+from .sslcommerz import SSLCOMMERZ
 
 @ratelimit(key='ip', rate='10/m', method='GET')
 def home(request):
@@ -51,10 +47,14 @@ def home(request):
             'total_registrations': Student.objects.filter(is_deleted=False).count(),
             'active_events': len(active_events_list),
         }
+
+        # Get active countdown timer
+        countdown = Countdown.objects.filter(is_active=True).first()
         
         context = {
             'events': active_events_list,
             'stats': stats,
+            'countdown': countdown,
         }
         
         return render(request, 'registration/home.html', context)
@@ -62,7 +62,7 @@ def home(request):
     except Exception as e:
         logger.error(f'Error in home view: {e}')
         messages.error(request, 'An error occurred while loading the page.')
-        return render(request, 'registration/home.html', {'events': [], 'stats': {}})
+        return render(request, 'registration/home.html', {'events': [], 'stats': {}, 'countdown': None})
 
 @ratelimit(key='ip', rate='10/m', method=['GET', 'POST'])
 def register(request):
@@ -106,6 +106,30 @@ def register(request):
                     # Add selected events
                     events = form.cleaned_data['events']
                     total_amount = Decimal('0.00')
+                    team_event_selected = any(event.event_type == 'TEAM' for event in events)
+
+                    team = None
+                    if team_event_selected:
+                        team_name = request.POST.get('team_name')
+                        if not team_name:
+                            raise ValueError("Team name is required for team events.")
+                        
+                        team = Team.objects.create(name=team_name, event=events.filter(event_type='TEAM').first())
+                        
+                        team_members = []
+                        for i in range(1, 100): # Assuming max 99 team members
+                            member_name = request.POST.get(f'team_member_{i}')
+                            if not member_name:
+                                break
+                            team_members.append(member_name)
+
+                        logger.info(f'Team members from form: {team_members}')
+
+                        leader_index = request.POST.get('team_leader')
+                        
+                        for i, member_name in enumerate(team_members):
+                            TeamMember.objects.create(team=team, name=member_name, is_leader=(leader_index == str(i + 1)))
+
 
                     for event in events:
                         # Verify event is still available
@@ -116,6 +140,7 @@ def register(request):
                         StudentEventRegistration.objects.create(
                             student=student,
                             event=event,
+                            team=team if event.event_type == 'TEAM' else None,
                             registration_ip=ip_address
                         )
                         total_amount += event.fee
@@ -274,7 +299,7 @@ def payment_gateway(request, student_id):
             # Customer information (sanitized)
             'cus_name': student.name[:50],  # Limit length
             'cus_email': student.email,
-            'cus_add1': student.school_college[:100],  # Limit length
+            'cus_add1': student.school_college.name[:100] if student.school_college else '',  # Limit length
             'cus_city': 'Dhaka',
             'cus_state': 'Dhaka',
             'cus_postcode': '1000',
@@ -641,9 +666,9 @@ def payment_cancel(request, student_id):
 @ratelimit(key='ip', rate='30/m', method='POST')
 def payment_ipn(request):
     """
-    Handle SSL Commerz IPN (Instant Payment Notification) with enhanced security and idempotency.
-    This view is responsible for receiving asynchronous notifications from SSL Commerz
-    about the status of a transaction.
+    Handle SSL Commerz IPN (Instant Payment Notification) with enhanced security.
+    This view uses a direct Validation API call to ensure authenticity and checks
+    for transaction risk levels before marking a payment as successful.
     """
     ip_address = get_client_ip(request)
     user_agent = request.META.get('HTTP_USER_AGENT', '')
@@ -653,24 +678,23 @@ def payment_ipn(request):
     try:
         ipn_data = request.POST.dict()
         tran_id = ipn_data.get('tran_id')
-        status = ipn_data.get('status')
+
+        if not tran_id:
+            logger.error("IPN received without a transaction ID.")
+            return HttpResponseBadRequest('Transaction ID missing.')
 
         logger.info(f"IPN data for tran_id {tran_id}: {ipn_data}")
 
-        # 1. Verify the authenticity of the IPN callback
-        if not verify_sslcommerz_callback(ipn_data, settings.SSLCOMMERZ_STORE_PASSWORD):
-            log_security_alert('INVALID_HASH', 'IPN hash verification failed', ip_address, user_agent, data=ipn_data)
-            logger.warning(f"IPN hash verification failed for tran_id: {tran_id}")
-            return HttpResponseBadRequest('Invalid signature')
+        # 1. Validate the IPN using the Validation API for maximum security
+        sslcz = SSLCOMMERZ()
+        is_valid, validation_response = sslcz.validate_ipn(ipn_data)
 
-        # 2. Check for required parameters
-        val_id = ipn_data.get('val_id')
-        amount = ipn_data.get('amount')
-        if not all([tran_id, status, val_id, amount]):
-            logger.error(f"IPN missing required parameters for tran_id: {tran_id}")
-            return HttpResponseBadRequest('Missing required parameters')
+        if not is_valid:
+            log_security_alert('INVALID_HASH', 'IPN validation failed via API call', ip_address, user_agent, data=ipn_data)
+            logger.warning(f"IPN validation failed for tran_id: {tran_id}. Reason: {validation_response.get('failed_reason')}")
+            return HttpResponseBadRequest('Invalid IPN')
 
-        # 3. Retrieve the payment record
+        # 2. Retrieve the payment record
         try:
             payment = Payment.objects.get(transaction_id=tran_id)
         except Payment.DoesNotExist:
@@ -678,45 +702,60 @@ def payment_ipn(request):
             logger.warning(f"IPN received for non-existent tran_id: {tran_id}")
             return HttpResponseBadRequest('Transaction not found')
 
-        # 4. Idempotency Check: If payment is already successful, do nothing.
+        # 3. Idempotency Check: If payment is already successful, do nothing.
         if payment.status == 'SUCCESS':
             logger.info(f"IPN for already successful payment {tran_id} received. Skipping.")
             return HttpResponse('OK', status=200)
 
-        # 5. Verify the payment amount
-        if not verify_payment_amount(payment.amount, amount):
-            log_security_alert('PAYMENT_FRAUD', f'IPN amount mismatch - Expected: {payment.amount}, Received: {amount}', ip_address, user_agent, payment=payment, data=ipn_data)
+        # 4. Verify the payment amount
+        if not verify_payment_amount(payment.amount, validation_response.get('amount')):
+            log_security_alert('PAYMENT_FRAUD', f"IPN amount mismatch - Expected: {payment.amount}, Received: {validation_response.get('amount')}", ip_address, user_agent, payment=payment, data=ipn_data)
             logger.warning(f"IPN amount mismatch for tran_id: {tran_id}")
             return HttpResponseBadRequest('Amount mismatch')
 
-        # 6. Process the IPN based on the status
+        # 5. Process the IPN based on the validated status and risk level
         with transaction.atomic():
-            if status.upper() == 'VALID':
-                # Mark payment as successful
-                payment.status = 'SUCCESS'
-                payment.gateway_txnid = val_id
-                payment.gateway_response = ipn_data
-                payment.completed_at = timezone.now()
-                payment.save()
+            status = validation_response.get('status')
+            risk_level = validation_response.get('risk_level')
+            val_id = validation_response.get('val_id')
 
-                # Update student record
-                student = payment.student
-                student.is_paid = True
-                student.payment_verified = True
-                student.save()
+            if status == 'VALID':
+                # Check risk level
+                if risk_level == '0':
+                    # Low risk, mark as successful
+                    payment.status = 'SUCCESS'
+                    payment.gateway_txnid = val_id
+                    payment.gateway_response = validation_response
+                    payment.completed_at = timezone.now()
+                    payment.save()
 
-                logger.info(f'Payment for tran_id {tran_id} successfully updated to SUCCESS via IPN.')
+                    student = payment.student
+                    student.is_paid = True
+                    student.payment_verified = True
+                    student.save()
 
-                # Optionally, send confirmation email here if not already sent
-                # This is a good fallback if the user closes the browser before the success page loads
-                receipt, created = Receipt.objects.get_or_create(student=student, payment=payment)
-                if not receipt.email_sent:
-                    send_registration_email(student, receipt)
+                    logger.info(f'Payment for tran_id {tran_id} successfully updated to SUCCESS via IPN.')
 
-            elif status.upper() in ['FAILED', 'CANCELLED', 'EXPIRED']:
-                # Mark payment with the terminal status
-                payment.status = status.upper()
-                payment.gateway_response = ipn_data
+                    receipt, created = Receipt.objects.get_or_create(student=student, payment=payment)
+                    if not receipt.email_sent:
+                        send_registration_email(student, receipt)
+                
+                else: # High risk
+                    payment.gateway_response = validation_response
+                    payment.save()
+                    log_security_alert(
+                        'HIGH_RISK_TRANSACTION',
+                        f'High-risk transaction detected for tran_id: {tran_id}. Needs manual review.',
+                        ip_address,
+                        user_agent,
+                        payment=payment,
+                        data=validation_response
+                    )
+                    logger.warning(f"High-risk transaction {tran_id} flagged for manual review.")
+
+            elif status in ['FAILED', 'CANCELLED', 'EXPIRED']:
+                payment.status = status
+                payment.gateway_response = validation_response
                 payment.save()
                 logger.info(f'Payment for tran_id {tran_id} updated to {payment.status} via IPN.')
 
@@ -729,6 +768,7 @@ def payment_ipn(request):
         logger.error(f'IPN processing error: {e}')
         log_security_alert('IPN_ERROR', f'IPN processing error: {str(e)}', ip_address, user_agent, data={'error': str(e)})
         return HttpResponseBadRequest('Processing error')
+
 
 from .utils import (
     get_client_ip, rate_limit_check, sanitize_payment_data, validate_student_data,

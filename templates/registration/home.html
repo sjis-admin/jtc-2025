@@ -3,6 +3,29 @@
 
 {% block title %}Josephite Tech Carnival 2025 - Registration{% endblock %}
 
+{% block styles %}
+<style>
+    .card-glow::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 50% 0, rgba(128, 0, 128, 0.5), rgba(0, 0, 255, 0.5));
+        filter: blur(20px);
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out;
+        z-index: -1;
+        border-radius: 12px;
+    }
+
+    .card-glow:hover::before {
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="relative">
     <!-- Hero Section -->
@@ -15,20 +38,48 @@
                 <p class="text-lg sm:text-xl md:text-2xl mb-8 text-blue-100">
                     Join the Ultimate Technology Competition & Showcase
                 </p>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
-                    <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 sm:p-6">
-                        <div class="text-2xl sm:text-3xl font-bold text-yellow-300">{{ events.count }}</div>
-                        <div class="text-blue-100 text-sm sm:text-base">Exciting Events</div>
-                    </div>
-                    <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 sm:p-6">
-                        <div class="text-2xl sm:text-3xl font-bold text-green-300">{{ stats.total_registrations }}</div>
-                        <div class="text-blue-100 text-sm sm:text-base">Registered Students</div>
-                    </div>
-                    <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 sm:p-6">
-                        <div class="text-2xl sm:text-3xl font-bold text-pink-300">৳500</div>
-                        <div class="text-blue-100 text-sm sm:text-base">Per Event Fee</div>
+                {% if countdown %}
+                <div id="countdown-container" class="text-white text-center mb-8">
+                    <h3 class="text-2xl sm:text-3xl font-bold text-yellow-300 mb-6 tracking-wider animate-pulse">{{ countdown.title }}</h3>
+                    <div id="countdown-timer" class="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8 max-w-3xl mx-auto">
+                        <div class="bg-white bg-opacity-10 backdrop-blur-md rounded-2xl p-4 sm:p-6 shadow-lg border border-white/20 transform hover:scale-105 transition-transform duration-300">
+                            <div id="days" class="text-4xl sm:text-6xl font-bold">0</div>
+                            <div class="text-sm sm:text-base mt-2 uppercase tracking-widest">Days</div>
+                        </div>
+                        <div class="bg-white bg-opacity-10 backdrop-blur-md rounded-2xl p-4 sm:p-6 shadow-lg border border-white/20 transform hover:scale-105 transition-transform duration-300">
+                            <div id="hours" class="text-4xl sm:text-6xl font-bold">0</div>
+                            <div class="text-sm sm:text-base mt-2 uppercase tracking-widest">Hours</div>
+                        </div>
+                        <div class="bg-white bg-opacity-10 backdrop-blur-md rounded-2xl p-4 sm:p-6 shadow-lg border border-white/20 transform hover:scale-105 transition-transform duration-300">
+                            <div id="minutes" class="text-4xl sm:text-6xl font-bold">0</div>
+                            <div class="text-sm sm:text-base mt-2 uppercase tracking-widest">Minutes</div>
+                        </div>
+                        <div class="bg-white bg-opacity-10 backdrop-blur-md rounded-2xl p-4 sm:p-6 shadow-lg border border-white/20 transform hover:scale-105 transition-transform duration-300">
+                            <div id="seconds" class="text-4xl sm:text-6xl font-bold">0</div>
+                            <div class="text-sm sm:text-base mt-2 uppercase tracking-widest">Seconds</div>
+                        </div>
                     </div>
                 </div>
+                {% else %}
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 mb-8 text-white">
+                    <div class="flex flex-col items-center justify-center bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 sm:p-6 transform hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-gamepad text-4xl text-green-300 mb-2"></i>
+                        <span class="font-semibold">Gaming</span>
+                    </div>
+                    <div class="flex flex-col items-center justify-center bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 sm:p-6 transform hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-code text-4xl text-blue-300 mb-2"></i>
+                        <span class="font-semibold">Coding</span>
+                    </div>
+                    <div class="flex flex-col items-center justify-center bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 sm:p-6 transform hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-robot text-4xl text-purple-300 mb-2"></i>
+                        <span class="font-semibold">Robotics</span>
+                    </div>
+                    <div class="flex flex-col items-center justify-center bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 sm:p-6 transform hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-vr-cardboard text-4xl text-pink-300 mb-2"></i>
+                        <span class="font-semibold">VR/AR</span>
+                    </div>
+                </div>
+                {% endif %}
                 <a href="{% url 'register' %}" class="inline-flex items-center bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-xl text-base sm:text-lg transition-all transform hover:scale-105 shadow-lg">
                     <i class="fas fa-rocket mr-2"></i>
                     <span class="hidden sm:inline">Register Now - Start Your Journey!</span>
@@ -39,53 +90,63 @@
     </div>
 
     <!-- Events Showcase -->
-    <div class="mb-12">
+    <div id="events" class="mb-12">
         <h2 class="text-2xl sm:text-3xl font-bold text-center mb-8 text-gray-800">
             <i class="fas fa-star text-yellow-500 mr-2"></i>
             Available Events
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for event in events %}
-            <div class="group relative bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-primary/30 transform hover:-translate-y-1">
-                <!-- Event Card Header with Gradient -->
-                <div class="bg-gradient-to-r from-blue-500 to-purple-600 p-4 sm:p-6">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="text-lg sm:text-xl font-bold text-white">{{ event.name }}</h3>
-                        <div class="bg-white bg-opacity-20 backdrop-blur-sm rounded-full px-3 py-1">
-                            <span class="text-white text-sm font-semibold">৳{{ event.fee }}</span>
+            <div class="card-glow relative group transform hover:-translate-y-1 transition-transform duration-300">
+                <div class="relative bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden h-full z-10">
+                    <!-- Event Card Header with Gradient -->
+                    <div class="bg-gradient-to-r from-blue-500 to-purple-600 p-4 sm:p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-lg sm:text-xl font-bold text-white">{{ event.name }}</h3>
+                            <div class="bg-white bg-opacity-20 backdrop-blur-sm rounded-full px-3 py-1">
+                                <span class="text-white text-sm font-semibold">৳{{ event.fee }}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center text-blue-100 text-sm">
+                            <i class="fas fa-calendar-alt mr-2"></i>
+                            <span>Registration Open</span>
                         </div>
                     </div>
-                    <div class="flex items-center text-blue-100 text-sm">
-                        <i class="fas fa-calendar-alt mr-2"></i>
-                        <span>Registration Open</span>
+                    
+                    <!-- Event Card Body -->
+                    <div class="p-4 sm:p-6">
+                        <p class="text-gray-600 mb-4 text-sm sm:text-base leading-relaxed">{{ event.description }}</p>
+                        
+                        <!-- Event Features -->
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <span class="bg-blue-50 text-blue-700 text-xs font-medium px-2 py-1 rounded-full">
+                                <i class="fas fa-trophy mr-1"></i>Prizes
+                            </span>
+                            <span class="bg-green-50 text-green-700 text-xs font-medium px-2 py-1 rounded-full">
+                                <i class="fas fa-certificate mr-1"></i>Certificate
+                            </span>
+                            {% if event.event_type == 'TEAM' %}
+                            <span class="bg-purple-50 text-purple-700 text-xs font-medium px-2 py-1 rounded-full">
+                                <i class="fas fa-users mr-1"></i>
+                                Team Event
+                                {% if event.max_team_size %}
+                                    (Max: {{ event.max_team_size }} members)
+                                {% endif %}
+                            </span>
+                            {% else %}
+                            <span class="bg-indigo-50 text-indigo-700 text-xs font-medium px-2 py-1 rounded-full">
+                                <i class="fas fa-user mr-1"></i>
+                                Individual Event
+                            </span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Register Button -->
+                        <a href="{% url 'register' %}" class="block w-full bg-gradient-to-r from-primary to-secondary text-white text-center py-2 sm:py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform group-hover:scale-105">
+                            <i class="fas fa-arrow-right mr-2"></i>Join This Event
+                        </a>
                     </div>
                 </div>
-                
-                <!-- Event Card Body -->
-                <div class="p-4 sm:p-6">
-                    <p class="text-gray-600 mb-4 text-sm sm:text-base leading-relaxed">{{ event.description }}</p>
-                    
-                    <!-- Event Features -->
-                    <div class="flex flex-wrap gap-2 mb-4">
-                        <span class="bg-blue-50 text-blue-700 text-xs font-medium px-2 py-1 rounded-full">
-                            <i class="fas fa-trophy mr-1"></i>Prizes
-                        </span>
-                        <span class="bg-green-50 text-green-700 text-xs font-medium px-2 py-1 rounded-full">
-                            <i class="fas fa-certificate mr-1"></i>Certificate
-                        </span>
-                        <span class="bg-purple-50 text-purple-700 text-xs font-medium px-2 py-1 rounded-full">
-                            <i class="fas fa-users mr-1"></i>Team Event
-                        </span>
-                    </div>
-                    
-                    <!-- Register Button -->
-                    <a href="{% url 'register' %}" class="block w-full bg-gradient-to-r from-primary to-secondary text-white text-center py-2 sm:py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform group-hover:scale-105">
-                        <i class="fas fa-arrow-right mr-2"></i>Join This Event
-                    </a>
-                </div>
-                
-                <!-- Hover Effect Overlay -->
-                <div class="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
             </div>
             {% empty %}
             <div class="col-span-full text-center py-12">
@@ -175,4 +236,36 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+{% if countdown %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const targetDate = new Date("{{ countdown.target_date.isoformat }}").getTime();
+
+        const countdownInterval = setInterval(function() {
+            const now = new Date().getTime();
+            const distance = targetDate - now;
+
+            if (distance < 0) {
+                clearInterval(countdownInterval);
+                document.getElementById("countdown-container").innerHTML = '<div class="text-2xl font-bold text-yellow-300">The event has started!</div>';
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            document.getElementById("days").innerText = days;
+            document.getElementById("hours").innerText = hours;
+            document.getElementById("minutes").innerText = minutes;
+            document.getElementById("seconds").innerText = seconds;
+        }, 1000);
+    });
+</script>
+{% endif %}
 {% endblock %}

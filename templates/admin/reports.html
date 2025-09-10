@@ -157,9 +157,9 @@
             
             <div class="space-y-3">
                 {% for school in school_breakdown %}
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors" title="{{ school.school_college__name }} - {{ school.paid_count }} paid out of {{ school.count }} total students">
                     <div class="flex-1">
-                        <div class="font-medium text-gray-900 truncate">{{ school.school_college|truncatechars:30 }}</div>
+                        <div class="font-medium text-gray-900 truncate">{{ school.school_college__name|truncatechars:30 }}</div>
                         <div class="flex items-center space-x-4 mt-1">
                             <span class="text-sm text-gray-600">Total: {{ school.count }}</span>
                             <span class="text-sm text-green-600">Paid: {{ school.paid_count }}</span>
@@ -415,9 +415,9 @@
     <div class="bg-white border-t px-6 py-4 mx-6 mb-6 rounded-lg shadow-sm">
         <div class="flex items-center justify-between text-sm text-gray-600">
             <div class="flex items-center space-x-4">
-                <span>Report generated on: <span class="font-medium">{{ "now"|date:"M j, Y g:i A" }}</span></span>
+                <span>Report generated on: <span class="font-medium">{% now "M j, Y g:i A" %}</span></span>
                 <span>•</span>
-                <span>Data as of: <span class="font-medium">{{ "now"|date:"M j, Y g:i A" }}</span></span>
+                <span>Data as of: <span class="font-medium">{% now "M j, Y g:i A" %}</span></span>
             </div>
             <div class="flex items-center space-x-4">
                 <span>Total Expected Revenue: <span class="font-medium text-blue-600">৳{{ total_revenue|add:pending_revenue|floatformat:0 }}</span></span>

@@ -8,6 +8,7 @@ from cryptography.fernet import Fernet
 from django.conf import settings
 import uuid
 import base64
+from django.core.exceptions import ValidationError
 from decimal import Decimal
 import hashlib
 
@@ -21,14 +22,21 @@ class School(models.Model):
     def __str__(self):
         return self.name
 
+from django.core.exceptions import ImproperlyConfigured
+
 class EncryptedField(models.TextField):
     """Custom field for encrypting sensitive data"""
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Generate or get encryption key
-        self.key = getattr(settings, 'ENCRYPTION_KEY', Fernet.generate_key())
-        self.cipher_suite = Fernet(self.key)
+        key = getattr(settings, 'ENCRYPTION_KEY', None)
+        if key is None:
+            raise ImproperlyConfigured(
+                "You must set the ENCRYPTION_KEY in your settings file. "
+                "You can generate a new key with: from cryptography.fernet import Fernet; Fernet.generate_key()"
+            )
+        self.cipher_suite = Fernet(key)
     
     def from_db_value(self, value, expression, connection):
         if value is None:
@@ -36,8 +44,11 @@ class EncryptedField(models.TextField):
         try:
             # Decrypt the value
             return self.cipher_suite.decrypt(value.encode()).decode()
-        except:
-            return value  # Return as-is if decryption fails
+        except Exception as e:
+            # Log the error and return the raw value
+            # In a real application, you might want to handle this differently
+            print(f"Error decrypting value: {e}")
+            return value
     
     def to_python(self, value):
         if isinstance(value, str) or value is None:
@@ -51,22 +62,48 @@ class EncryptedField(models.TextField):
         return self.cipher_suite.encrypt(value.encode()).decode()
 
 class Event(models.Model):
+    EVENT_TYPE_CHOICES = [
+        ('INDIVIDUAL', 'Individual'),
+        ('TEAM', 'Team'),
+    ]
+
     name = models.CharField(max_length=200)
     description = models.TextField()
     fee = models.DecimalField(
-    max_digits=10,
-    decimal_places=2,
-    default=500.00,
-    validators=[MinValueValidator(Decimal('0.01'))]   # ✅ fixed
+        max_digits=10,
+        decimal_places=2,
+        default=500.00,
+        validators=[MinValueValidator(Decimal('0.01'))]
     )
     is_active = models.BooleanField(default=True)
-    max_participants = models.PositiveIntegerField(null=True, blank=True)
+    max_participants = models.PositiveIntegerField(null=True, blank=True, help_text="Keep blank for unlimited participants.")
+    
+    # New fields for event type
+    event_type = models.CharField(
+        max_length=10,
+        choices=EVENT_TYPE_CHOICES,
+        default='INDIVIDUAL',
+        help_text="Select 'Team' for team-based events."
+    )
+    max_team_size = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(2)],
+        help_text="Required if event type is 'Team'. Minimum 2 members."
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
         ordering = ['-created_at']
     
+    def clean(self):
+        if self.event_type == 'TEAM' and not self.max_team_size:
+            raise ValidationError({'max_team_size': "Max team size is required for team events."})
+        if self.event_type == 'INDIVIDUAL' and self.max_team_size:
+            self.max_team_size = None
+
     def __str__(self):
         return self.name
     
@@ -118,7 +155,7 @@ class Student(models.Model):
     
     # Registration Details
     events = models.ManyToManyField(Event, through='StudentEventRegistration')
-    registration_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    registration_id = models.CharField(max_length=20, unique=True, editable=False)
     total_amount = models.DecimalField(
     max_digits=10,
     decimal_places=2,
@@ -157,6 +194,19 @@ class Student(models.Model):
         # Auto-assign group based on grade ranges
         if self.grade:
             self.group = self.calculate_group_from_grade(self.grade)
+
+        if not self.registration_id:
+            current_year = timezone.now().strftime('%y')
+            prefix = f'JTC{current_year}'
+            last_student = Student.objects.filter(registration_id__startswith=prefix).order_by('registration_id').last()
+            
+            if last_student:
+                last_id = int(last_student.registration_id[len(prefix):])
+                new_id = last_id + 1
+            else:
+                new_id = 1
+            
+            self.registration_id = f'{prefix}{new_id:04d}'
         
         # Generate payment verification hash
         if not self.payment_verification_hash:
@@ -193,7 +243,6 @@ class Student(models.Model):
         self.total_amount = total
         # Regenerate hash when amount changes
         self.payment_verification_hash = self.generate_verification_hash()
-        self.save()
         return total
     
     def verify_payment_integrity(self, received_amount):
@@ -215,9 +264,27 @@ class Student(models.Model):
     def __str__(self):
         return f"{self.name} - {self.school_college}"
 
+
+class Team(models.Model):
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='teams')
+    name = models.CharField(max_length=200)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+class TeamMember(models.Model):
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='members')
+    name = models.CharField(max_length=200, default="")
+    is_leader = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f'{self.name} - {self.team.name}'
+
 class StudentEventRegistration(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True)
     registered_at = models.DateTimeField(auto_now_add=True)
     registration_ip = models.GenericIPAddressField(null=True, blank=True)
     
@@ -368,6 +435,8 @@ class AdminLog(models.Model):
     def __str__(self):
         return f"{self.admin_user.username} - {self.action} - {self.timestamp}"
 
+from django.db import transaction
+
 class Receipt(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='receipts')
     payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='receipts')
@@ -388,13 +457,14 @@ class Receipt(models.Model):
     
     def save(self, *args, **kwargs):
         if not self.receipt_number:
-            # Generate receipt number: JTC2025-XXXX
-            last_receipt = Receipt.objects.order_by('id').last()
-            if last_receipt:
-                last_number = int(last_receipt.receipt_number.split('-')[1])
-                self.receipt_number = f"JTC2025-{last_number + 1:04d}"
-            else:
-                self.receipt_number = "JTC2025-0001"
+            with transaction.atomic():
+                # Lock the table to prevent race conditions
+                last_receipt = Receipt.objects.select_for_update().order_by('id').last()
+                if last_receipt:
+                    last_number = int(last_receipt.receipt_number.split('-')[1])
+                    self.receipt_number = f"JTC2025-{last_number + 1:04d}"
+                else:
+                    self.receipt_number = "JTC2025-0001"
         super().save(*args, **kwargs)
     
     def record_download(self):
@@ -436,3 +506,11 @@ class SecurityAlert(models.Model):
     
     def __str__(self):
         return f"{self.get_alert_type_display()} - {self.created_at}"
+
+class Countdown(models.Model):
+    title = models.CharField(max_length=200)
+    target_date = models.DateTimeField()
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.title

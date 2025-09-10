@@ -16,9 +16,7 @@
             }
             body { 
                 background: white !important;
-                margin: 0;
-                padding: 0;
-                font-size: 12px !important;
+                font-size: 10px !important;
             }
             .print\:shadow-none { 
                 box-shadow: none !important; 
@@ -27,75 +25,75 @@
                 border-radius: 0 !important; 
             }
             .print\:p-4 {
-                padding: 1rem !important;
+                padding: 0.5rem !important;
             }
             .print\:m-0 {
                 margin: 0 !important;
             }
             .print\:text-xs {
-                font-size: 10px !important;
+                font-size: 9px !important;
             }
             .print\:text-sm {
-                font-size: 11px !important;
+                font-size: 10px !important;
             }
             .print\:text-base {
-                font-size: 12px !important;
+                font-size: 11px !important;
             }
             .print\:text-lg {
-                font-size: 14px !important;
+                font-size: 12px !important;
             }
             .print\:text-xl {
-                font-size: 16px !important;
+                font-size: 14px !important;
             }
             .print\:text-2xl {
-                font-size: 18px !important;
+                font-size: 16px !important;
             }
             .print\:text-3xl {
-                font-size: 20px !important;
+                font-size: 18px !important;
             }
             .print\:mb-2 {
-                margin-bottom: 0.5rem !important;
+                margin-bottom: 0.25rem !important;
             }
             .print\:mb-3 {
-                margin-bottom: 0.75rem !important;
+                margin-bottom: 0.5rem !important;
             }
             .print\:mb-4 {
-                margin-bottom: 1rem !important;
+                margin-bottom: 0.75rem !important;
             }
             .print\:mb-6 {
-                margin-bottom: 1.5rem !important;
+                margin-bottom: 1rem !important;
             }
             .print\:mt-4 {
-                margin-top: 1rem !important;
+                margin-top: 0.75rem !important;
             }
             .print\:mt-6 {
-                margin-top: 1.5rem !important;
+                margin-top: 1rem !important;
             }
             .print\:py-1 {
-                padding-top: 0.25rem !important;
-                padding-bottom: 0.25rem !important;
+                padding-top: 0.1rem !important;
+                padding-bottom: 0.1rem !important;
             }
             .print\:px-2 {
-                padding-left: 0.5rem !important;
-                padding-right: 0.5rem !important;
+                padding-left: 0.25rem !important;
+                padding-right: 0.25rem !important;
             }
             .print\:gap-4 {
-                gap: 1rem !important;
+                gap: 0.5rem !important;
             }
             .print\:gap-6 {
-                gap: 1.5rem !important;
+                gap: 1rem !important;
             }
             .print\:space-y-1 > * + * {
-                margin-top: 0.25rem !important;
+                margin-top: 0.1rem !important;
             }
             .print\:h-12 {
-                height: 3rem !important;
+                height: 2.5rem !important;
             }
             .print\:w-12 {
-                width: 3rem !important;
+                width: 2.5rem !important;
             }
             .print\:pt-4 {
-                padding-top: 1rem !important;
+                padding-top: 0.5rem !important;
             }
             .print\:border-t {
                 border-top-width: 1px !important;
@@ -108,7 +106,7 @@
             
             @page {
                 size: A4;
-                margin: 0.75in;
+                margin: 0.5in;
             }
             
             /* Prevent page breaks inside important sections */
@@ -118,38 +116,17 @@
             
             /* Make table rows smaller and prevent breaks */
             .events-table {
-                font-size: 10px !important;
+                font-size: 9px !important;
             }
             .events-table th,
             .events-table td {
-                padding: 0.25rem 0.5rem !important;
-                line-height: 1.2 !important;
+                padding: 0.1rem 0.25rem !important;
+                line-height: 1.1 !important;
             }
             
-            /* Compact the whole receipt */
-            .receipt-container {
-                transform: scale(0.95);
-                transform-origin: top left;
-                width: 105.26% !important; /* Compensate for scale */
-            }
-        }
-        
-        @media screen {
-            body {
-                background-color: #f3f4f6;
-                padding: 2rem;
-            }
-        }
-        
-        /* Responsive table for events */
-        .events-table-container {
-            overflow-x: auto;
-        }
-        
-        /* Ensure QR code is smaller on print */
-        @media print {
+            /* Ensure QR code is smaller on print */
             .qr-code {
-                transform: scale(0.7);
+                transform: scale(0.6);
             }
         }
     </style>
@@ -179,7 +156,7 @@
                     <i class="fas fa-code text-4xl print:text-2xl text-blue-600 mr-3"></i>
                     <div>
                         <h1 class="text-3xl print:text-xl font-bold text-gray-800">Josephite Tech Club</h1>
-                        <p class="text-lg print:text-sm text-gray-600">St. Joseph's Institute School</p>
+                        <p class="text-lg print:text-sm text-gray-600">St. Joseph International School</p>
                     </div>
                 </div>
                 <div class="w-full h-1 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 rounded"></div>
@@ -299,7 +276,7 @@
                 <div class="flex justify-between items-center">
                     <div class="text-sm print:text-xs text-gray-500">
                         <p>Thank you for participating in Josephite Tech Carnival 2025!</p>
-                        <p>For queries: <a href="mailto:info@josephitetechclub.com" class="text-blue-600">info@josephitetechclub.com</a></p>
+                        <p>For queries: <a href="mailto:jtc@sjis.edu.bd" class="text-blue-600">jtc@sjis.edu.bd</a></p>
                     </div>
                     <div class="text-right text-sm print:text-xs text-gray-500">
                         <p class="font-semibold">This is a computer-generated receipt.</p>

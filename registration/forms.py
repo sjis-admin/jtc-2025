@@ -1,7 +1,29 @@
 # registration/forms.py
 from django import forms
 from django.core.exceptions import ValidationError
-from .models import Student, Event, School
+from .models import Student, Event, School, Team, TeamMember
+
+class TeamMemberForm(forms.Form):
+    name = forms.CharField(
+        max_length=200,
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+            'placeholder': 'Enter team member name'
+        })
+    )
+
+class BaseTeamMemberFormSet(forms.BaseFormSet):
+    def clean(self):
+        if any(self.errors):
+            return
+
+        names = []
+        for form in self.forms:
+            if form.cleaned_data:
+                name = form.cleaned_data['name']
+                if name in names:
+                    raise ValidationError("Team member names must be unique.")
+                names.append(name)
 
 class StudentRegistrationForm(forms.ModelForm):
     events = forms.ModelMultipleChoiceField(

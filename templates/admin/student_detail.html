@@ -20,8 +20,8 @@
                 </h1>
             </div>
             <div class="flex items-center space-x-3">
-                {% if not student.is_paid %}
-                <form method="post" action="{% url 'admin_verify_payment' payment_id=payments.first.id %}" class="inline" style="{% if not payments %}display: none;{% endif %}">
+                {% if not student.is_paid and payments.first %}
+                <form method="post" action="{% url 'admin_verify_payment' payment_id=payments.first.id %}" class="inline">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="approve">
                     <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
@@ -173,6 +173,16 @@
                         <div>
                             <h4 class="font-medium text-gray-900">{{ event.name }}</h4>
                             <p class="text-sm text-gray-600">{{ event.description|truncatechars:60 }}</p>
+                            <div class="text-xs text-gray-500 mt-1">
+                                {% if event.event_type == 'TEAM' %}
+                                    Team Event
+                                    {% if event.max_team_size %}
+                                        (Max: {{ event.max_team_size }} members)
+                                    {% endif %}
+                                {% else %}
+                                    Individual Event
+                                {% endif %}
+                            </div>
                         </div>
                         <div class="text-right">
                             <div class="text-lg font-semibold text-purple-600">৳{{ event.fee }}</div>

@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Django
+db.sqlite3
+staticfiles/
+media/
+
+# Environment
+.env
+venv/
+env/
+
+# Logs
+logs/
+*.log
+
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+
+# Build artifacts
+.dist/

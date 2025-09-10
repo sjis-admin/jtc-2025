@@ -21,7 +21,7 @@ class SecurityHeadersMiddleware:
         # Content Security Policy
         csp_directives = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.tailwindcss.com unpkg.com cdnjs.cloudflare.com",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.tailwindcss.com unpkg.com cdnjs.cloudflare.com cdn.jsdelivr.net",
             "style-src 'self' 'unsafe-inline' cdnjs.cloudflare.com fonts.googleapis.com",
             "font-src 'self' fonts.gstatic.com cdnjs.cloudflare.com",
             "img-src 'self' data:",

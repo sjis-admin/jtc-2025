@@ -758,7 +758,7 @@ def export_detailed_report_csv():
     """
     Export a detailed CSV report of all paid students.
     """
-    from .models import Student
+    from .models import Student, Team
     import csv
     from io import StringIO
 
@@ -767,21 +767,36 @@ def export_detailed_report_csv():
 
     # Header
     writer.writerow([
-        'Student Name', 'Email', 'Mobile Number', 'School/College',
+        'Student Name', 'Registration ID', 'Email', 'Mobile Number', 'School/College',
         'Grade', 'Group', 'Roll', 'Amount Paid', 'Payment Method',
-        'Transaction ID', 'Payment Date', 'Registered Events', 'Number of Events'
+        'Transaction ID', 'Payment Date', 'Registered Events', 'Number of Events',
+        'Team Name', 'Team Members'
     ])
 
     # Data
-    students = Student.objects.filter(is_paid=True, is_deleted=False).prefetch_related('payments', 'events').order_by('-created_at')
+    students = Student.objects.filter(is_paid=True, is_deleted=False).prefetch_related('payments', 'events', 'studenteventregistration_set__team__members').order_by('-created_at')
 
     for student in students:
         payment = student.payments.filter(status='SUCCESS').first()
         event_names = ", ".join([event.name for event in student.events.all()])
         num_events = student.events.count()
 
+        team_names = []
+        team_members_list = []
+        team_registrations = student.studenteventregistration_set.filter(team__isnull=False).select_related('team').prefetch_related('team__members')
+        
+        for team_reg in team_registrations:
+            team_names.append(team_reg.team.name)
+            members = ", ".join([member.name for member in team_reg.team.members.all()])
+            if members:
+                team_members_list.append(members)
+
+        team_name_str = ", ".join(team_names)
+        team_members_str = "; ".join(team_members_list)
+
         writer.writerow([
             student.name,
+            student.registration_id,
             student.email,
             student.mobile_number,
             student.school_college.name if student.school_college else '',
@@ -793,7 +808,9 @@ def export_detailed_report_csv():
             payment.transaction_id if payment else 'N/A',
             payment.completed_at.strftime('%Y-%m-%d %H:%M:%S') if payment and payment.completed_at else 'N/A',
             event_names,
-            num_events
+            num_events,
+            team_name_str,
+            team_members_str
         ])
 
     return output.getvalue()

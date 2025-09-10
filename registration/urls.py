@@ -35,6 +35,7 @@ urlpatterns = [
     # New URLs for bulk actions and delete
     path('dashboard/bulk-action/', admin_views.bulk_action, name='bulk_action'),
     path('dashboard/delete-student/<int:student_id>/', admin_views.delete_student, name='delete_student'),
+    path('dashboard/logout/', admin_views.logout_view, name='admin_logout'),
     path('dashboard/verify-payment/<int:payment_id>/', admin_views.verify_payment, name='admin_verify_payment'),
     path('qr-code/<str:receipt_number>/', views.generate_qr_code, name='generate_qr_code'),
     path('verify/receipt/<str:receipt_number>/', views.verify_receipt, name='verify_receipt'),

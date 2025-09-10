@@ -49,76 +49,22 @@
     </div>
 
     <!-- Activity Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-6 p-6">
-        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 p-6">
+        {% for card in stats_cards %}
+        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-{{ card.color }}-500">
             <div class="flex items-center">
                 <div class="flex-shrink-0">
-                    <i class="fas fa-plus-circle text-2xl text-blue-500"></i>
+                    <i class="fas {{ card.icon }} text-2xl text-{{ card.color }}-500"></i>
                 </div>
                 <div class="ml-4">
-                    <div class="text-sm font-medium text-gray-500 uppercase">Created</div>
+                    <div class="text-sm font-medium text-gray-500 uppercase">{{ card.name }}</div>
                     <div class="text-xl font-bold text-gray-900">
-                        {{ stats.create_count|default:0 }}
+                        {{ card.count|default:0 }}
                     </div>
                 </div>
             </div>
         </div>
-
-        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <i class="fas fa-edit text-2xl text-yellow-500"></i>
-                </div>
-                <div class="ml-4">
-                    <div class="text-sm font-medium text-gray-500 uppercase">Updated</div>
-                    <div class="text-xl font-bold text-gray-900">
-                        {{ stats.update_count|default:0 }}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <i class="fas fa-trash text-2xl text-red-500"></i>
-                </div>
-                <div class="ml-4">
-                    <div class="text-sm font-medium text-gray-500 uppercase">Deleted</div>
-                    <div class="text-xl font-bold text-gray-900">
-                        {{ stats.delete_count|default:0 }}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <i class="fas fa-check-circle text-2xl text-green-500"></i>
-                </div>
-                <div class="ml-4">
-                    <div class="text-sm font-medium text-gray-500 uppercase">Verified</div>
-                    <div class="text-xl font-bold text-gray-900">
-                        {{ stats.payment_verify_count|default:0 }}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <i class="fas fa-envelope text-2xl text-purple-500"></i>
-                </div>
-                <div class="ml-4">
-                    <div class="text-sm font-medium text-gray-500 uppercase">Emails</div>
-                    <div class="text-xl font-bold text-gray-900">
-                        {{ stats.email_sent_count|default:0 }}
-                    </div>
-                </div>
-            </div>
-        </div>
+        {% endfor %}
     </div>
 
     <!-- Filters -->

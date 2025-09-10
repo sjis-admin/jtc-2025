@@ -138,13 +138,41 @@
                 </h2>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {% for checkbox in form.events %}
+                    <div id="team-section" class="hidden">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Team Information</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="team_name" class="block text-sm font-medium text-gray-700 mb-2">Team Name</label>
+                                <input type="text" name="team_name" id="team_name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <input type="radio" name="team_leader" value="0" class="h-5 w-5 text-blue-600 border-gray-300 rounded-full focus:ring-blue-500" checked>
+                                <label class="text-sm font-medium text-gray-700">I am the team leader</label>
+                            </div>
+                            <div id="team-members-container"></div>
+                            <button type="button" id="add-team-member" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+                                Add Team Member
+                            </button>
+                        </div>
+                    </div>
+
+                    {% for event in form.events.field.queryset %}
                         <div class="border border-gray-200 rounded-lg p-4 hover:bg-blue-50 transition-colors">
                             <label class="flex items-start space-x-3 cursor-pointer">
-                                {{ checkbox.tag }}
+                                <input type="checkbox" name="events" value="{{ event.id }}" data-event-type="{{ event.event_type }}" data-max-team-size="{{ event.max_team_size|default:0 }}" class="event-checkbox h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500" hx-trigger="change" hx-post="/calculate-total/" hx-target="#total-amount" hx-swap="innerHTML">
                                 <div class="flex-1">
-                                    <div class="font-medium text-gray-800">{{ checkbox.choice_label }}</div>
-                                    <div class="text-sm text-green-600 font-medium">৳500</div>
+                                    <div class="font-medium text-gray-800">{{ event.name }}</div>
+                                    <div class="text-sm text-gray-500">
+                                        {% if event.event_type == 'TEAM' %}
+                                            Team Event
+                                            {% if event.max_team_size %}
+                                                (Max: {{ event.max_team_size }} members)
+                                            {% endif %}
+                                        {% else %}
+                                            Individual Event
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-sm text-green-600 font-medium">৳{{ event.fee }}</div>
                                 </div>
                             </label>
                         </div>
@@ -204,10 +232,16 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const schoolCollegeSelect = document.getElementById('id_school_college');
         const otherSchoolDiv = document.getElementById('other_school_div');
+        const form = document.querySelector('form');
+        const teamNameInput = document.getElementById('team_name');
+        const teamMembersContainer = document.getElementById('team-members-container');
 
         schoolCollegeSelect.addEventListener('change', function() {
             if (this.options[this.selectedIndex].text === 'Other') {
@@ -216,6 +250,83 @@
                 otherSchoolDiv.style.display = 'none';
             }
         });
+
+        const eventCheckboxes = document.querySelectorAll('.event-checkbox');
+        const teamSection = document.getElementById('team-section');
+        const addTeamMemberBtn = document.getElementById('add-team-member');
+        let maxTeamSize = 0;
+        let teamMemberCount = 0;
+
+        function updateTeamSectionVisibility() {
+            let showTeamSection = false;
+            maxTeamSize = 0;
+
+            eventCheckboxes.forEach(cb => {
+                if (cb.checked && cb.dataset.eventType === 'TEAM') {
+                    showTeamSection = true;
+                    const size = parseInt(cb.dataset.maxTeamSize);
+                    if (size > maxTeamSize) {
+                        maxTeamSize = size;
+                    }
+                }
+            });
+
+            if (showTeamSection) {
+                teamSection.classList.remove('hidden');
+                teamNameInput.required = true;
+            } else {
+                teamSection.classList.add('hidden');
+                teamNameInput.required = false;
+            }
+        }
+
+        eventCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateTeamSectionVisibility);
+        });
+
+        addTeamMemberBtn.addEventListener('click', function() {
+            if (maxTeamSize > 0 && teamMemberCount >= maxTeamSize - 1) {
+                alert(`You can add a maximum of ${maxTeamSize - 1} team members.`);
+                return;
+            }
+
+            teamMemberCount++;
+            const memberIndex = teamMemberCount;
+            const newMemberDiv = document.createElement('div');
+            newMemberDiv.classList.add('flex', 'items-center', 'space-x-2', 'mt-2');
+            newMemberDiv.innerHTML = `
+                <input type="text" name="team_member_${memberIndex}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Team Member ${memberIndex} Name" required>
+                <input type="radio" name="team_leader" value="${memberIndex}" class="h-5 w-5 text-blue-600 border-gray-300 rounded-full focus:ring-blue-500">
+                <label class="text-sm font-medium text-gray-700">Leader</label>
+                <button type="button" class="remove-team-member bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">Remove</button>
+            `;
+            teamMembersContainer.appendChild(newMemberDiv);
+
+            newMemberDiv.querySelector('.remove-team-member').addEventListener('click', function() {
+                newMemberDiv.remove();
+                teamMemberCount--;
+            });
+        });
+
+        form.addEventListener('submit', function(event) {
+            const isTeamEventSelected = Array.from(eventCheckboxes).some(cb => cb.checked && cb.dataset.eventType === 'TEAM');
+            
+            if (isTeamEventSelected) {
+                if (!teamNameInput.value.trim()) {
+                    alert('Please enter a team name.');
+                    event.preventDefault();
+                    return;
+                }
+                if (teamMemberCount === 0) {
+                    alert('Please add at least one team member.');
+                    event.preventDefault();
+                    return;
+                }
+            }
+        });
+
+        // Initial check
+        updateTeamSectionVisibility();
     });
 </script>
 {% endblock %}

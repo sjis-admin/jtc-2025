@@ -176,18 +176,20 @@
                             <input type="checkbox" class="student-checkbox rounded border-gray-300 text-primary focus:ring-primary" value="{{ student.id }}">
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0 h-10 w-10">
-                                    <div class="h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">
-                                        {{ student.name|first|upper }}
+                            <a href="{% url 'admin_student_detail' student.id %}" class="hover:underline" title="{{ student.email }} - {{ student.mobile_number }}">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 h-10 w-10">
+                                        <div class="h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">
+                                            {{ student.name|first|upper }}
+                                        </div>
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">{{ student.name }}</div>
+                                        <div class="text-sm text-gray-500">{{ student.email }}</div>
+                                        <div class="text-xs text-gray-400">{{ student.mobile_number }}</div>
                                     </div>
                                 </div>
-                                <div class="ml-4">
-                                    <div class="text-sm font-medium text-gray-900">{{ student.name }}</div>
-                                    <div class="text-sm text-gray-500">{{ student.email }}</div>
-                                    <div class="text-xs text-gray-400">{{ student.mobile_number }}</div>
-                                </div>
-                            </div>
+                            </a>
                         </td>
                         <td class="px-6 py-4">
                             <div class="text-sm text-gray-900">{{ student.school_college|truncatechars:30 }}</div>

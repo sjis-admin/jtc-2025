@@ -14,7 +14,7 @@
             </h1>
             <div class="flex items-center space-x-4">
                 <span class="text-gray-600">Welcome, {{ user.get_full_name|default:user.username }}</span>
-                <a href="{% url 'admin:logout' %}" class="text-red-600 hover:text-red-800 transition-colors">
+                <a href="{% url 'admin_logout' %}" class="text-red-600 hover:text-red-800 transition-colors">
                     <i class="fas fa-sign-out-alt mr-1"></i>Logout
                 </a>
             </div>
@@ -108,29 +108,12 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 px-6 pb-6">
         <!-- Registration Trends -->
         <div class="bg-white rounded-xl shadow-lg p-6">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-gray-800">
-                    <i class="fas fa-chart-line text-blue-500 mr-2"></i>
-                    Registration Trends (Last 7 Days)
-                </h3>
-                <div class="text-sm text-gray-500">Daily Registrations</div>
-            </div>
-            <div class="h-64 flex items-end space-x-2 bg-gray-50 p-4 rounded-lg">
-                {% for day in daily_registrations %}
-                <div class="flex-1 flex flex-col items-center group">
-                    <div class="w-full bg-blue-100 rounded-t relative overflow-hidden" style="height: {% widthratio day.count 10 200 %}px; min-height: 20px;">
-                        <div class="w-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t transition-all duration-300 group-hover:from-blue-600 group-hover:to-blue-500" style="height: 100%;"></div>
-                        <div class="absolute inset-0 bg-blue-600 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-                    </div>
-                    <div class="text-xs text-gray-500 mt-2 text-center">{{ day.date|date:"M j" }}</div>
-                    <div class="text-sm font-bold text-gray-800 group-hover:text-blue-600 transition-colors">{{ day.count }}</div>
-                </div>
-                {% empty %}
-                <div class="text-center text-gray-500 w-full py-16">
-                    <i class="fas fa-chart-line text-4xl mb-4"></i>
-                    <p>No registration data available</p>
-                </div>
-                {% endfor %}
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-chart-line text-primary mr-2"></i>
+                Registration Trends (Last 7 Days)
+            </h3>
+            <div class="h-80">
+                <canvas id="registrationChart"></canvas>
             </div>
         </div>
 
@@ -431,28 +414,73 @@
 {% endblock %}
 
 {% block scripts %}
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Auto-refresh dashboard every 5 minutes
-    setTimeout(function() {
-        location.reload();
-    }, 300000);
-    
-    // Add smooth animations
     document.addEventListener('DOMContentLoaded', function() {
-        const cards = document.querySelectorAll('.transform');
-        cards.forEach(card => {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(20px)';
-        });
+        const ctx = document.getElementById('registrationChart').getContext('2d');
         
-        // Animate cards in sequence
-        cards.forEach((card, index) => {
-            setTimeout(() => {
-                card.style.transition = 'all 0.6s ease-out';
-                card.style.opacity = '1';
-                card.style.transform = 'translateY(0)';
-            }, index * 100);
+        const chartData = {{ daily_registrations|safe }};
+        
+        const labels = chartData.map(item => item.date);
+        const totalData = chartData.map(item => item.total_count);
+        const paidData = chartData.map(item => item.paid_count);
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Total Registrations',
+                        data: totalData,
+                        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    },
+                    {
+                        label: 'Paid Registrations',
+                        data: paidData,
+                        backgroundColor: 'rgba(16, 185, 129, 0.5)',
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
         });
+
+        // Auto-refresh dashboard every 5 minutes
+        setTimeout(function() {
+            location.reload();
+        }, 300000);
     });
 </script>
 {% endblock %}

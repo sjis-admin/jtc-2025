@@ -55,11 +55,7 @@
                 <div class="ml-5 w-0 flex-1">
                     <dl>
                         <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Successful</dt>
-                        <dd class="text-2xl font-bold text-gray-900">
-                            {% for status in page_obj.object_list %}
-                                {% if status.status == 'SUCCESS' %}{{ page_obj.object_list|length }}{% endif %}
-                            {% empty %}0{% endfor %}
-                        </dd>
+                        <dd class="text-2xl font-bold text-gray-900">{{ stats.successful_payments }}</dd>
                     </dl>
                 </div>
             </div>
@@ -73,11 +69,7 @@
                 <div class="ml-5 w-0 flex-1">
                     <dl>
                         <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Pending</dt>
-                        <dd class="text-2xl font-bold text-gray-900">
-                            {% for status in page_obj.object_list %}
-                                {% if status.status == 'PENDING' %}{{ page_obj.object_list|length }}{% endif %}
-                            {% empty %}0{% endfor %}
-                        </dd>
+                        <dd class="text-2xl font-bold text-gray-900">{{ stats.pending_payments }}</dd>
                     </dl>
                 </div>
             </div>
@@ -91,11 +83,7 @@
                 <div class="ml-5 w-0 flex-1">
                     <dl>
                         <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Failed</dt>
-                        <dd class="text-2xl font-bold text-gray-900">
-                            {% for status in page_obj.object_list %}
-                                {% if status.status == 'FAILED' %}{{ page_obj.object_list|length }}{% endif %}
-                            {% empty %}0{% endfor %}
-                        </dd>
+                        <dd class="text-2xl font-bold text-gray-900">{{ stats.failed_payments }}</dd>
                     </dl>
                 </div>
             </div>
@@ -109,11 +97,7 @@
                 <div class="ml-5 w-0 flex-1">
                     <dl>
                         <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Total Revenue</dt>
-                        <dd class="text-2xl font-bold text-gray-900">
-                            ৳{% for payment in page_obj.object_list %}
-                                {% if payment.status == 'SUCCESS' %}{{ payment.amount|add:0 }}{% endif %}
-                            {% empty %}0{% endfor %}
-                        </dd>
+                        <dd class="text-2xl font-bold text-gray-900">৳{{ stats.total_revenue|floatformat:0 }}</dd>
                     </dl>
                 </div>
             </div>

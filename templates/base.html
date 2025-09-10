@@ -1,10 +1,13 @@
 <!-- templates/base.html -->
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Josephite Tech Club{% endblock %}</title>
+    <title>{% block title %}JTC 2025{% endblock %}</title>
+    {% block styles %}{% endblock %}
+    <link rel="shortcut icon" href="{% static 'img/favicon.ico' %}">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -160,6 +163,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div>
                     <div class="flex items-center mb-4">
+                        <img src="{% static 'img/logo.png' %}" alt="School Logo" class="h-12 mr-4">
                         <span class="font-bold text-xl">St. Joseph International School</span>
                     </div>
                 </div>
@@ -187,6 +191,33 @@
         </div>
     </footer>
 
-    {% block scripts %}{% endblock %}
+    {% block scripts %}
+{% if user.is_staff %}
+<script>
+    (function() {
+        const timeout = 600000; // 10 minutes in milliseconds
+        let timer;
+
+        function resetTimer() {
+            clearTimeout(timer);
+            timer = setTimeout(logout, timeout);
+        }
+
+        function logout() {
+            // Show a message and redirect to logout page
+            alert("Your session has expired due to inactivity.");
+            window.location.href = "{% url 'admin_logout' %}";
+        }
+
+        // Reset timer on user activity
+        document.addEventListener("mousemove", resetTimer);
+        document.addEventListener("keypress", resetTimer);
+
+        // Initial timer start
+        resetTimer();
+    })();
+</script>
+{% endif %}
+{% endblock %}
 </body>
 </html>

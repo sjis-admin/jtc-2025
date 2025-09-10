@@ -69,9 +69,7 @@
                 <div class="ml-5 w-0 flex-1">
                     <dl>
                         <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Active Events</dt>
-                        <dd class="text-2xl font-bold text-gray-900">
-                            {% for event in events %}{% if event.is_active %}{{ forloop.counter }}{% endif %}{% empty %}0{% endfor %}
-                        </dd>
+                        <dd class="text-2xl font-bold text-gray-900">{{ active_events_count }}</dd>
                     </dl>
                 </div>
             </div>
@@ -102,7 +100,7 @@
                     <dl>
                         <dt class="text-sm font-medium text-gray-500 uppercase tracking-wide">Event Revenue</dt>
                         <dd class="text-2xl font-bold text-gray-900">
-                            ৳{% for event in events %}{{ event.total_revenue|add:0 }}{% empty %}0{% endfor %}
+                            ৳{{ total_revenue|floatformat:0 }}
                         </dd>
                     </dl>
                 </div>
@@ -176,6 +174,16 @@
                     <div class="flex items-center text-sm text-gray-600">
                         <i class="fas fa-clock w-4 h-4 mr-2 text-gray-400"></i>
                         <span>Last updated: {{ event.created_at|timesince }} ago</span>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-600">
+                        <i class="fas fa-info-circle w-4 h-4 mr-2 text-gray-400"></i>
+                        <span>
+                            {% if event.event_type == 'TEAM' %}
+                                Team Event (Max: {{ event.max_team_size }} members)
+                            {% else %}
+                                Individual Event
+                            {% endif %}
+                        </span>
                     </div>
                 </div>
 
@@ -305,7 +313,9 @@ const eventsData = {
         is_active: {{ event.is_active|yesno:"true,false" }},
         created_at: "{{ event.created_at|date:"M j, Y g:i A" }}",
         registrations: {{ event.registration_count|default:0 }},
-        revenue: {{ event.total_revenue|default:0 }}
+        revenue: {{ event.total_revenue|default:0 }},
+        event_type: "{{ event.get_event_type_display }}",
+        max_team_size: "{{ event.max_team_size|default:'' }}"
     },
     {% endfor %}
 };
@@ -346,6 +356,11 @@ function viewEventDetails(eventId) {
                 </div>
             </div>
             
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <h4 class="font-medium text-gray-900 mb-2">Event Type</h4>
+                <p class="text-gray-700">${event.event_type}${event.max_team_size ? ` (Max: ${event.max_team_size} members)` : ''}</p>
+            </div>
+
             <div class="bg-gray-50 p-4 rounded-lg">
                 <h4 class="font-medium text-gray-900 mb-2">Created</h4>
                 <p class="text-gray-700">${event.created_at}</p>

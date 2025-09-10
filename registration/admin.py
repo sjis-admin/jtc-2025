@@ -6,7 +6,11 @@ from django.urls import path, reverse
 from django.http import HttpResponseRedirect
 from django.contrib import messages
 from django.db.models import Count
-from .models import Student, Event, Payment, AdminLog, Receipt, StudentEventRegistration, School
+from .models import Student, Event, Payment, AdminLog, Receipt, StudentEventRegistration, School, Countdown
+
+@admin.register(Countdown)
+class CountdownAdmin(admin.ModelAdmin):
+    list_display = ('title', 'target_date', 'is_active')
 
 @admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
@@ -29,13 +33,13 @@ class StudentEventRegistrationInline(admin.TabularInline):
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
     list_display = [
-        'name', 'school_college', 'grade', 'group', 'email', 
+        'registration_id', 'name', 'school_college', 'grade', 'group', 'email', 
         'mobile_number', 'total_amount', 'payment_status', 'created_at'
     ]
     list_filter = [
         'grade', 'group', 'is_paid', 'payment_verified', 'created_at', 'school_college'
     ]
-    search_fields = ['name', 'email', 'mobile_number', 'roll', 'school_college']
+    search_fields = ['registration_id', 'name', 'email', 'mobile_number', 'roll', 'school_college']
     readonly_fields = ['registration_id', 'group', 'total_amount', 'created_at', 'updated_at']
     ordering = ['-created_at']
     date_hierarchy = 'created_at'
@@ -142,11 +146,20 @@ class StudentAdmin(admin.ModelAdmin):
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ['name', 'fee', 'is_active', 'registration_count', 'created_at']
-    list_filter = ['is_active', 'created_at']
+    list_display = ['name', 'fee', 'event_type', 'max_team_size', 'is_active', 'registration_count', 'created_at']
+    list_filter = ['is_active', 'event_type', 'created_at']
     search_fields = ['name', 'description']
     ordering = ['-created_at']
     
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'description', 'fee', 'is_active')
+        }),
+        ('Event Type', {
+            'fields': ('event_type', 'max_team_size', 'max_participants'),
+        }),
+    )
+
     def registration_count(self, obj):
         count = obj.student_set.count()
         return format_html('<strong>{}</strong>', count)
@@ -158,6 +171,10 @@ class EventAdmin(admin.ModelAdmin):
         )
     
     def save_model(self, request, obj, form, change):
+        if obj.event_type == 'TEAM' and not obj.max_team_size:
+            messages.error(request, "Max team size is required for team events.")
+            return
+        
         super().save_model(request, obj, form, change)
         
         action = 'UPDATE' if change else 'CREATE'
