@@ -26,3 +26,9 @@ node_modules/
 
 # Build artifacts
 .dist/
+
+# Production-only configs
+josephite_tech_club/settings.py
+*.backup*
+gunicorn.conf.py
+start_gunicorn.sh
