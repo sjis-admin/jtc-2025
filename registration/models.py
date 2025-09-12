@@ -67,8 +67,15 @@ class Event(models.Model):
         ('TEAM', 'Team'),
     ]
 
+    RULES_TYPE_CHOICES = [
+        ('TEXT', 'Text'),
+        ('IMAGE', 'Image'),
+        ('PDF', 'PDF'),
+    ]
+
     name = models.CharField(max_length=200)
     description = models.TextField()
+    event_image = models.ImageField(upload_to='event_images/', blank=True, null=True)
     fee = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -91,6 +98,11 @@ class Event(models.Model):
         validators=[MinValueValidator(2)],
         help_text="Required if event type is 'Team'. Minimum 2 members."
     )
+
+    # New fields for rules
+    rules_type = models.CharField(max_length=10, choices=RULES_TYPE_CHOICES, default='TEXT')
+    rules_text = models.TextField(blank=True)
+    rules_file = models.FileField(upload_to='event_rules/', blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -514,3 +526,56 @@ class Countdown(models.Model):
 
     def __str__(self):
         return self.title
+
+class HomePageAsset(models.Model):
+    ASSET_TYPE_CHOICES = [
+        ('IMAGE', 'Image'),
+        ('VIDEO', 'Video'),
+    ]
+    
+    title = models.CharField(max_length=200)
+    asset_type = models.CharField(max_length=10, choices=ASSET_TYPE_CHOICES)
+    file = models.FileField(upload_to='homepage_assets/')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title
+
+class SocialMediaProfile(models.Model):
+    PLATFORM_CHOICES = [
+        ('FACEBOOK', 'Facebook'),
+        ('INSTAGRAM', 'Instagram'),
+        ('TWITTER', 'Twitter'),
+        ('LINKEDIN', 'LinkedIn'),
+        ('YOUTUBE', 'YouTube'),
+        ('DISCORD', 'Discord'),
+    ]
+
+    platform = models.CharField(max_length=20, choices=PLATFORM_CHOICES, unique=True)
+    url = models.URLField()
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.platform
+
+class TeamMemberProfile(models.Model):
+    MEMBER_TYPE_CHOICES = [
+        ('MODERATOR', 'Moderator'),
+        ('BOARD_MEMBER', 'Board Member'),
+    ]
+
+    name = models.CharField(max_length=200)
+    designation = models.CharField(max_length=200)
+    image = models.ImageField(upload_to='team_members/')
+    member_type = models.CharField(max_length=20, choices=MEMBER_TYPE_CHOICES)
+
+    def __str__(self):
+        return self.name
+
+class PastEventImage(models.Model):
+    image = models.ImageField(upload_to='past_events/')
+    caption = models.CharField(max_length=200, blank=True)
+
+    def __str__(self):
+        return self.caption or 'Past Event Image'

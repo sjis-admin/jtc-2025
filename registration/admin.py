@@ -6,7 +6,25 @@ from django.urls import path, reverse
 from django.http import HttpResponseRedirect
 from django.contrib import messages
 from django.db.models import Count
-from .models import Student, Event, Payment, AdminLog, Receipt, StudentEventRegistration, School, Countdown
+from .models import (Student, Event, Payment, AdminLog, Receipt, 
+                    StudentEventRegistration, School, Countdown, 
+                    HomePageAsset, SocialMediaProfile, TeamMemberProfile, PastEventImage)
+
+@admin.register(TeamMemberProfile)
+class TeamMemberProfileAdmin(admin.ModelAdmin):
+    list_display = ('name', 'designation', 'member_type')
+
+@admin.register(PastEventImage)
+class PastEventImageAdmin(admin.ModelAdmin):
+    list_display = ('caption',)
+
+@admin.register(HomePageAsset)
+class HomePageAssetAdmin(admin.ModelAdmin):
+    list_display = ('title', 'asset_type', 'is_active', 'created_at')
+
+@admin.register(SocialMediaProfile)
+class SocialMediaProfileAdmin(admin.ModelAdmin):
+    list_display = ('platform', 'url', 'is_active')
 
 @admin.register(Countdown)
 class CountdownAdmin(admin.ModelAdmin):
@@ -155,8 +173,14 @@ class EventAdmin(admin.ModelAdmin):
         (None, {
             'fields': ('name', 'description', 'fee', 'is_active')
         }),
+        ('Event Media', {
+            'fields': ('event_image',)
+        }),
         ('Event Type', {
             'fields': ('event_type', 'max_team_size', 'max_participants'),
+        }),
+        ('Event Rules', {
+            'fields': ('rules_type', 'rules_text', 'rules_file'),
         }),
     )
 
@@ -186,6 +210,10 @@ class EventAdmin(admin.ModelAdmin):
             description=f'{action.lower()}d event: {obj.name}',
             ip_address=get_client_ip(request)
         )
+
+    class Media:
+        js = ('admin/js/event_admin.js',)
+
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):

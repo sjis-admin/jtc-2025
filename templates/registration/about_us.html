@@ -1,0 +1,648 @@
+{% extends 'base.html' %}
+
+{% block title %}About Us - Josephite Tech Carnival 2025{% endblock %}
+
+{% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block styles %}
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        --dark-gradient: linear-gradient(135deg, #434343 0%, #000000 100%);
+        --glass-bg: rgba(255, 255, 255, 0.1);
+        --glass-border: rgba(255, 255, 255, 0.2);
+        --shadow-light: 0 8px 32px rgba(31, 38, 135, 0.37);
+        --shadow-heavy: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+    }
+
+    .hero-section {
+        background: var(--primary-gradient);
+        position: relative;
+        overflow: hidden;
+        padding: 4rem 0;
+        margin-bottom: 4rem;
+    }
+
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><polygon fill="rgba(255,255,255,0.1)" points="0,1000 1000,0 1000,1000"/></svg>');
+        background-size: cover;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 10;
+        text-align: center;
+        color: white;
+    }
+
+    .hero-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 3.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        animation: fadeInUp 1s ease-out;
+    }
+
+    .hero-subtitle {
+        font-size: 1.25rem;
+        font-weight: 300;
+        opacity: 0.9;
+        animation: fadeInUp 1s ease-out 0.2s both;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .section-container {
+        margin-bottom: 6rem;
+        position: relative;
+    }
+
+    .section-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        position: relative;
+    }
+
+    .section-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 2.5rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 1rem;
+        position: relative;
+        display: inline-block;
+    }
+
+    .section-title::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 4px;
+        background: var(--accent-gradient);
+        border-radius: 2px;
+    }
+
+    .section-subtitle {
+        font-size: 1.1rem;
+        color: #718096;
+        max-width: 600px;
+        margin: 0 auto;
+        line-height: 1.6;
+    }
+
+    /* Modern Card Design */
+    .team-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+        padding: 0 1rem;
+    }
+
+    .team-member-card {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        width: 300px; /* Add a fixed width */
+        margin: 0 auto; /* Center the cards */
+    }
+
+    .team-member-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .image-container {
+        width: 100%;
+        height: 300px; /* Set a fixed height */
+        background-color: #f7f7f7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .image-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    .team-member-card:hover .image-container img {
+        transform: scale(1.1);
+    }
+
+    .member-info {
+        padding: 1.5rem;
+        text-align: center;
+    }
+
+    .member-name {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #2d3748;
+    }
+
+    .member-designation {
+        font-size: 0.9rem;
+        color: #718096;
+        font-weight: 400;
+    }
+
+    /* Past Events Gallery */
+    .gallery-section {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(20px);
+        border-radius: 30px;
+        padding: 3rem;
+        margin: 2rem;
+        border: 1px solid var(--glass-border);
+    }
+
+    .gallery-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        grid-auto-rows: 250px;
+        grid-auto-flow: dense;
+        gap: 1rem;
+    }
+
+    .gallery-item {
+        position: relative;
+        overflow: hidden;
+        border-radius: 15px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .gallery-item:hover {
+        transform: scale(1.03);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .gallery-item .gallery-caption {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+        color: white;
+        padding: 2rem 1rem 1rem;
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+    }
+
+    .gallery-item:hover .gallery-caption {
+        transform: translateY(0);
+    }
+
+    .gallery-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        cursor: pointer;
+        transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    .gallery-item:hover img {
+        transform: scale(1.15);
+    }
+
+    /* Lightbox CSS */
+    .lightbox {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.95);
+        justify-content: center;
+        align-items: center;
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .lightbox-content {
+        max-width: 85%;
+        max-height: 85%;
+        position: relative;
+        animation: slideIn 0.4s ease-out;
+    }
+
+    @keyframes slideIn {
+        from { transform: translateY(-30px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .lightbox-img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 5px;
+    }
+
+    .lightbox-caption {
+        text-align: center;
+        color: rgba(255, 255, 255, 0.8);
+        margin-top: 1rem;
+        font-size: 1rem;
+        font-weight: 300;
+    }
+
+    .lightbox-close {
+        position: absolute;
+        top: 15px;
+        right: 25px;
+        font-size: 2.5rem;
+        color: rgba(255, 255, 255, 0.8);
+        cursor: pointer;
+        z-index: 1001;
+        transition: color 0.2s ease;
+    }
+
+    .lightbox-close:hover {
+        color: white;
+    }
+
+    .lightbox-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .lightbox-prev, .lightbox-next {
+        cursor: pointer;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 4rem;
+        padding: 1rem;
+        user-select: none;
+        transition: color 0.2s ease;
+    }
+
+    .lightbox-prev:hover, .lightbox-next:hover {
+        color: white;
+    }
+
+    .gallery-caption {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 1.5rem;
+        background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+        color: white;
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+    }
+
+    .gallery-item:hover .gallery-caption {
+        transform: translateY(0);
+    }
+
+    /* Scroll Navigation */
+    .scroll-nav {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .scroll-btn {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: var(--accent-gradient);
+        border: none;
+        color: white;
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+    }
+
+    .scroll-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(79, 172, 254, 0.6);
+    }
+
+    /* Floating Elements */
+    .floating-element {
+        position: absolute;
+        border-radius: 50%;
+        background: var(--accent-gradient);
+        opacity: 0.1;
+        animation: float 6s ease-in-out infinite;
+    }
+
+    .floating-element:nth-child(1) {
+        width: 100px;
+        height: 100px;
+        top: 10%;
+        left: 10%;
+        animation-delay: 0s;
+    }
+
+    .floating-element:nth-child(2) {
+        width: 60px;
+        height: 60px;
+        top: 20%;
+        right: 15%;
+        animation-delay: 2s;
+    }
+
+    .floating-element:nth-child(3) {
+        width: 80px;
+        height: 80px;
+        bottom: 15%;
+        left: 15%;
+        animation-delay: 4s;
+    }
+
+    @keyframes float {
+        0%, 100% {
+            transform: translateY(0px) rotate(0deg);
+        }
+        50% {
+            transform: translateY(-20px) rotate(180deg);
+        }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .hero-title {
+            font-size: 2.5rem;
+        }
+        
+        .section-title {
+            font-size: 2rem;
+        }
+
+        .team-grid {
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+            padding: 0;
+        }
+
+        .team-member-card {
+            max-width: 100%;
+        }
+
+        .gallery-item {
+            width: 280px;
+            height: 400px;
+        }
+
+        .gallery-section {
+            margin: 1rem;
+            padding: 2rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .team-grid {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        
+        .team-member-card {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+    }
+
+    /* Loading Animation */
+    .fade-in {
+        opacity: 0;
+        transform: translateY(30px);
+        animation: fadeInUp 0.8s ease-out forwards;
+    }
+
+    .fade-in:nth-child(1) { animation-delay: 0.1s; }
+    .fade-in:nth-child(2) { animation-delay: 0.2s; }
+    .fade-in:nth-child(3) { animation-delay: 0.3s; }
+    .fade-in:nth-child(4) { animation-delay: 0.4s; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="hero-content">
+        <h1 class="hero-title">Meet Our Amazing Team</h1>
+        <p class="hero-subtitle">The passionate minds behind Josephite Tech Carnival 2025</p>
+    </div>
+    <!-- Floating Elements -->
+    <div class="floating-element"></div>
+    <div class="floating-element"></div>
+    <div class="floating-element"></div>
+</div>
+
+<div class="container mx-auto px-4">
+    <!-- Moderators Section -->
+    <div class="section-container">
+        <div class="section-header">
+            <h2 class="section-title">Our Moderators</h2>
+            <p class="section-subtitle">
+                Leading with vision and expertise, our moderators guide the carnival with dedication and innovation.
+            </p>
+        </div>
+        
+        <div class="team-grid">
+            {% for member in moderators %}
+            <div class="team-member-card fade-in">
+                <div class="image-container">
+                    <img src="{{ member.image.url }}" alt="{{ member.name }}" loading="lazy">
+                </div>
+                <div class="member-info">
+                    <h3 class="member-name">{{ member.name }}</h3>
+                    <p class="member-designation">{{ member.designation }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Board Members Section -->
+    <div class="section-container">
+        <div class="section-header">
+            <h2 class="section-title">Board Members</h2>
+            <p class="section-subtitle">
+                Our dedicated board members bring diverse skills and unwavering commitment to make every event exceptional.
+            </p>
+        </div>
+        
+        <div class="team-grid">
+            {% for member in board_members %}
+            <div class="team-member-card fade-in">
+                <div class="image-container">
+                    <img src="{{ member.image.url }}" alt="{{ member.name }}" loading="lazy">
+                </div>
+                <div class="member-info">
+                    <h3 class="member-name">{{ member.name }}</h3>
+                    <p class="member-designation">{{ member.designation }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Past Events Gallery -->
+    <div class="gallery-section">
+        <div class="section-header">
+            <h2 class="section-title">Memories from Our Journey</h2>
+            <p class="section-subtitle">
+                Relive the magic and excitement from our previous events that brought together the tech community.
+            </p>
+        </div>
+        
+        <div class="gallery-container">
+            {% for image in past_event_images %}
+            <div class="gallery-item">
+                <img src="{{ image.image.url }}" alt="{{ image.caption }}" loading="lazy" onclick="openLightbox({{ forloop.counter0 }})">
+                {% if image.caption %}
+                <div class="gallery-caption">
+                    <p>{{ image.caption }}</p>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+<div class="lightbox" id="lightbox">
+    <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+    <div class="lightbox-content">
+        <img class="lightbox-img" id="lightbox-img">
+        <div class="lightbox-caption" id="lightbox-caption"></div>
+    </div>
+    <div class="lightbox-nav">
+        <span class="lightbox-prev" onclick="changeImage(-1)">&#8249;</span>
+        <span class="lightbox-next" onclick="changeImage(1)">&#8250;</span>
+    </div>
+</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+    // Lightbox functionality
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxCaption = document.getElementById('lightbox-caption');
+    const galleryItems = document.querySelectorAll('.gallery-item');
+    let currentIndex = 0;
+
+    function openLightbox(index) {
+        currentIndex = index;
+        const item = galleryItems[currentIndex];
+        const imgSrc = item.querySelector('img').src;
+        const caption = item.querySelector('.gallery-caption p')?.textContent || '';
+        
+        lightboxImg.src = imgSrc;
+        lightboxCaption.textContent = caption;
+        lightbox.style.display = 'flex';
+        document.addEventListener('keydown', handleKeyboardNav);
+    }
+
+    function closeLightbox() {
+        lightbox.style.display = 'none';
+        document.removeEventListener('keydown', handleKeyboardNav);
+    }
+
+    function changeImage(direction) {
+        currentIndex += direction;
+        if (currentIndex < 0) {
+            currentIndex = galleryItems.length - 1;
+        }
+        if (currentIndex >= galleryItems.length) {
+            currentIndex = 0;
+        }
+        const item = galleryItems[currentIndex];
+        const imgSrc = item.querySelector('img').src;
+        const caption = item.querySelector('.gallery-caption p')?.textContent || '';
+        
+        lightboxImg.src = imgSrc;
+        lightboxCaption.textContent = caption;
+    }
+
+    function handleKeyboardNav(e) {
+        if (e.key === 'ArrowLeft') {
+            changeImage(-1);
+        } else if (e.key === 'ArrowRight') {
+            changeImage(1);
+        } else if (e.key === 'Escape') {
+            closeLightbox();
+        }
+    }
+
+    // Add loading states for images
+    document.querySelectorAll('img').forEach(img => {
+        img.addEventListener('load', function() {
+            this.style.opacity = '1';
+        });
+        
+        img.addEventListener('error', function() {
+            this.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%23f0f0f0"/><text x="200" y="150" text-anchor="middle" fill="%23999" font-family="Arial" font-size="16">Image not found</text></svg>';
+        });
+    });
+
+    // Smooth scrolling for internal links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -181,7 +181,7 @@
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-600 print:text-xs">Issued By:</span>
-                            <span class="font-semibold print:text-xs">{{ receipt.generated_by.get_full_name|default:receipt.generated_by.username }}</span>
+                            <span class="font-semibold print:text-xs">{% if receipt.generated_by %}{{ receipt.generated_by.get_full_name|default:receipt.generated_by.username }}{% else %}System{% endif %}</span>
                         </div>
                     </div>
                 </div>

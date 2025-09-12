@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+
+{% block title %}Events - Josephite Tech Carnival 2025{% endblock %}
+
+{% block styles %}
+<style>
+    .event-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .event-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .modal-overlay {
+        transition: opacity 0.3s ease;
+    }
+
+    .modal-container {
+        transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold text-center mb-12 text-gray-800">Our Events</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {% for event in events %}
+        <div class="event-card bg-white rounded-lg shadow-lg overflow-hidden">
+            {% if event.event_image %}
+                <img src="{{ event.event_image.url }}" alt="{{ event.name }}" class="w-full h-48 object-cover">
+            {% else %}
+                <div class="w-full h-48 bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                    <i class="fas fa-star text-white text-4xl"></i>
+                </div>
+            {% endif %}
+            <div class="p-6">
+                <h2 class="text-2xl font-bold mb-2 text-gray-800">{{ event.name }}</h2>
+                <p class="text-gray-600 mb-4">{{ event.description }}</p>
+                <div class="flex justify-between items-center">
+                    <span class="text-lg font-bold text-primary">৳{{ event.fee }}</span>
+                    <button onclick="openModal('{{ event.id }}')" class="bg-secondary text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors">View Rules</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal -->
+        <div id="modal-{{ event.id }}" class="fixed inset-0 z-50 hidden flex items-center justify-center">
+            <div class="modal-overlay absolute inset-0 bg-gray-800 bg-opacity-75" onclick="closeModal('{{ event.id }}')"></div>
+            <div class="modal-container bg-white rounded-lg shadow-2xl max-w-2xl w-full m-4 transform scale-95">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-3xl font-bold text-gray-800">{{ event.name }} - Rules</h2>
+                        <div>
+                            {% if event.rules_file %}
+                            <a href="{{ event.rules_file.url }}" download class="text-gray-500 hover:text-gray-800 mr-4"><i class="fas fa-download"></i></a>
+                            {% endif %}
+                            <button onclick="toggleFullscreen('{{ event.id }}')" class="text-gray-500 hover:text-gray-800 mr-4"><i class="fas fa-expand"></i></button>
+                            <button onclick="closeModal('{{ event.id }}')" class="text-gray-500 hover:text-gray-800 text-3xl font-bold">&times;</button>
+                        </div>
+                    </div>
+                    <div class="prose max-w-none max-h-96 overflow-y-auto">
+                        {% if event.rules_type == 'TEXT' %}
+                            <p>{{ event.rules_text|linebreaks }}</p>
+                        {% elif event.rules_type == 'IMAGE' %}
+                            <img src="{{ event.rules_file.url }}" alt="Rules for {{ event.name }}" class="w-full rounded-md">
+                        {% elif event.rules_type == 'PDF' %}
+                            <iframe src="{{ event.rules_file.url }}" class="w-full h-96 rounded-md" frameborder="0"></iframe>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full text-center py-12">
+            <div class="bg-white rounded-xl shadow-md p-8 sm:p-12">
+                <div class="bg-gray-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-calendar-times text-3xl text-gray-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-700 mb-2">No Events Available</h3>
+                <p class="text-gray-500 mb-6">Events will be announced soon. Stay tuned!</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    let activeModalId = null;
+
+    function openModal(eventId) {
+        activeModalId = eventId;
+        const modal = document.getElementById('modal-' + eventId);
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+        // Animate modal in
+        setTimeout(() => {
+            modal.querySelector('.modal-overlay').classList.remove('opacity-0');
+            modal.querySelector('.modal-container').classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeModal(eventId) {
+        activeModalId = null;
+        const modal = document.getElementById('modal-' + eventId);
+        // Animate modal out
+        modal.querySelector('.modal-overlay').classList.add('opacity-0');
+        modal.querySelector('.modal-container').classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }, 300);
+    }
+
+    function toggleFullscreen(eventId) {
+        const modalContent = document.getElementById('modal-' + eventId).querySelector('.prose').innerHTML;
+        const fullscreenContent = document.getElementById('fullscreen-content').querySelector('.scrollable-content');
+        const fullscreenOverlay = document.getElementById('fullscreen-overlay');
+
+        fullscreenContent.innerHTML = modalContent;
+        fullscreenOverlay.classList.remove('hidden');
+    }
+
+    function closeFullscreen() {
+        const fullscreenOverlay = document.getElementById('fullscreen-overlay');
+        const fullscreenContent = document.getElementById('fullscreen-content').querySelector('.scrollable-content');
+
+        fullscreenOverlay.classList.add('hidden');
+        fullscreenContent.innerHTML = '';
+    }
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            if (activeModalId) {
+                closeModal(activeModalId);
+            }
+            if (!document.getElementById('fullscreen-overlay').classList.contains('hidden')) {
+                closeFullscreen();
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -42,6 +42,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'registration.middleware.SecurityHeadersMiddleware',
+    'registration.middleware.PaymentErrorMonitoringMiddleware',
     'registration.signals.AdminRequestMiddleware',
 ]
 
@@ -195,6 +196,10 @@ LOGGING = {
             'format': '{levelname} {message}',
             'style': '{',
         },
+        'payment_formatter': {
+            'format': '{levelname} {asctime} [PAYMENT] {message}',
+            'style': '{',
+        },
     },
     'handlers': {
         'file': {
@@ -213,6 +218,22 @@ LOGGING = {
             'backupCount': 10,
             'formatter': 'verbose',
         },
+        'payment_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'payment.log',
+            'maxBytes': 1024*1024*20,  # 20MB
+            'backupCount': 15,
+            'formatter': 'payment_formatter',
+        },
+        'error_file': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'error.log',
+            'maxBytes': 1024*1024*10,  # 10MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
@@ -226,8 +247,8 @@ LOGGING = {
             'propagate': True,
         },
         'registration.views': {
-            'handlers': ['file', 'console'],
-            'level': 'ERROR',
+            'handlers': ['payment_file', 'error_file', 'console'],
+            'level': 'INFO',
             'propagate': True,
         },
         'registration.security': {
@@ -238,6 +259,11 @@ LOGGING = {
         'django.security': {
             'handlers': ['security_file'],
             'level': 'WARNING',
+            'propagate': False,
+        },
+        'payment': {
+            'handlers': ['payment_file', 'error_file'],
+            'level': 'INFO',
             'propagate': False,
         },
     },
@@ -260,6 +286,48 @@ PASSWORD_RESET_TIMEOUT = 300  # 5 minutes
 
 # Application-specific settings
 SITE_URL = config('SITE_URL', default='http://127.0.0.1:8000')
+
+# Payment Configuration - Enhanced
 PAYMENT_TIMEOUT_MINUTES = 15
 MAX_PAYMENT_ATTEMPTS_PER_HOUR = 5
-ADMIN_SESSION_TIMEOUT_MINUTES = 30
+MAX_PAYMENT_RETRIES = 3
+PAYMENT_RETRY_DELAY_MINUTES = 5
+
+# Error Monitoring Configuration
+PAYMENT_ERROR_MONITORING = {
+    'ENABLE_ALERTS': True,
+    'ALERT_EMAIL': config('ADMIN_EMAIL', default='admin@jtc.com'),
+    'MAX_FAILED_ATTEMPTS_BEFORE_ALERT': 5,
+    'SUSPICIOUS_IP_MONITORING': True,
+    'AUTO_BLOCK_SUSPICIOUS_IPS': False,  # Set to True for auto-blocking
+}
+
+# Enhanced Email Configuration for Error Notifications
+if not DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    # Add backup email configuration
+    EMAIL_TIMEOUT = 30
+    EMAIL_USE_SSL = False  # Keep TLS for Gmail
+    EMAIL_USE_TLS = True
+
+
+# SSL Commerz Enhanced Configuration
+SSLCOMMERZ_TIMEOUT = 30  # seconds
+SSLCOMMERZ_RETRY_COUNT = 3
+SSLCOMMERZ_RETRY_DELAY = 2  # seconds
+
+# Enhanced Security Settings
+SECURE_PAYMENT_PROCESSING = {
+    'ENABLE_HASH_VERIFICATION': True,
+    'ENABLE_IP_WHITELISTING': False,  # Set to True if you want to whitelist SSLCommerz IPs
+    'SSLCOMMERZ_IPS': [
+        # Add SSLCommerz server IPs here if IP whitelisting is enabled
+        '103.106.118.10',
+        '103.106.118.11',
+    ],
+    'MAX_CALLBACK_RETRIES': 3,
+    'CALLBACK_TIMEOUT_SECONDS': 30,
+}
+
+# Custom Error Pages
+

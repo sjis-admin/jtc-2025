@@ -4,8 +4,69 @@ from django.dispatch import receiver
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 from django.contrib.auth.models import User
 from django.utils import timezone
-from .models import Student, Payment, Receipt, AdminLog
+from .models import Student, Payment, Receipt, AdminLog, SecurityAlert
 from .utils import log_admin_action, get_client_ip
+from django.db.models.signals import post_save, pre_save
+import logging
+
+logger = logging.getLogger(__name__)
+
+@receiver(pre_save, sender=Payment)
+def payment_status_change_monitor(sender, instance, **kwargs):
+    """
+    Monitor payment status changes for security and audit purposes
+    """
+    if instance.pk:  # If this is an update, not a new record
+        try:
+            old_payment = Payment.objects.get(pk=instance.pk)
+            
+            # Log status changes
+            if old_payment.status != instance.status:
+                logger.info(f'Payment {instance.transaction_id} status changed from {old_payment.status} to {instance.status}')
+                
+                # Alert on suspicious status changes
+                suspicious_changes = [
+                    ('SUCCESS', 'FAILED'),
+                    ('SUCCESS', 'CANCELLED'),
+                    ('FAILED', 'SUCCESS'),
+                ]
+                
+                if (old_payment.status, instance.status) in suspicious_changes:
+                    SecurityAlert.objects.create(
+                        alert_type='SUSPICIOUS_STATUS_CHANGE',
+                        description=f'Suspicious payment status change: {old_payment.status} -> {instance.status}',
+                        ip_address='127.0.0.1',  # System change
+                        related_payment=instance,
+                        related_student=instance.student,
+                        data={
+                            'old_status': old_payment.status,
+                            'new_status': instance.status,
+                            'transaction_id': instance.transaction_id
+                        }
+                    )
+                
+        except Payment.DoesNotExist:
+            pass  # New payment record
+        except Exception as e:
+            logger.error(f'Error in payment status monitor: {e}')
+
+@receiver(post_save, sender=Payment)
+def payment_completion_notification(sender, instance, created, **kwargs):
+    """
+    Send notifications and trigger actions when payment is completed
+    """
+    if instance.status == 'SUCCESS' and instance.completed_at:
+        try:
+            # Log successful payment
+            logger.info(f'Payment completed successfully: {instance.transaction_id} for student {instance.student.name}')
+            
+            # You can add additional actions here like:
+            # - Sending SMS notifications
+            # - Updating external systems
+            # - Triggering certificate generation
+            
+        except Exception as e:
+            logger.error(f'Error in payment completion notification: {e}')
 
 @receiver(post_save, sender=Student)
 def log_student_action(sender, instance, created, **kwargs):

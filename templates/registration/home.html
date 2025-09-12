@@ -3,8 +3,120 @@
 
 {% block title %}Josephite Tech Carnival 2025 - Registration{% endblock %}
 
+{% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+{% endblock %}
+
 {% block styles %}
 <style>
+    .hero-section {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-section.has-gradient {
+        background: linear-gradient(to right, #4F46E5, #8B5CF6, #EC4899);
+    }
+
+    .full-width-hero {
+        width: 100vw;
+        left: 50%;
+        right: 50%;
+        margin-left: -50vw;
+        margin-right: -50vw;
+        border-radius: 0;
+    }
+
+    #bg-video {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        min-width: 100%;
+        min-height: 100%;
+        width: auto;
+        height: auto;
+        z-index: 0;
+        transform: translateX(-50%) translateY(-50%);
+        background-size: cover;
+        transition: opacity 1s ease-in-out;
+        opacity: 1;
+    }
+
+    .slideshow-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+    }
+
+    .slide {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-size: cover;
+        background-position: center;
+        opacity: 0;
+        transition: opacity 1s ease-in-out;
+        z-index: 1;
+    }
+
+    .slide.active {
+        opacity: 1;
+    }
+
+    .hero-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1;
+    }
+    
+    .hero-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .hero-content .tech-title {
+        font-family: 'Orbitron', sans-serif;
+        background: linear-gradient(to right, #a855f7, #ec4899, #f59e0b, #a855f7);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: revolve 5s linear infinite;
+    }
+
+    @keyframes revolve {
+        to {
+            background-position: 200% center;
+        }
+    }
+
+    .hero-content p {
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .register-now-btn {
+        animation: glow 2s infinite alternate;
+    }
+
+    @keyframes glow {
+        from {
+            box-shadow: 0 0 10px -5px #f59e0b;
+        }
+        to {
+            box-shadow: 0 0 20px 5px #f59e0b;
+        }
+    }
+
     .card-glow::before {
         content: '';
         position: absolute;
@@ -29,11 +141,27 @@
 {% block content %}
 <div class="relative">
     <!-- Hero Section -->
-    <div class="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 text-white rounded-2xl overflow-hidden mb-12 shadow-2xl">
-        <div class="px-4 sm:px-8 py-12 md:py-24">
+    <div class="hero-section text-white mb-12 shadow-2xl 
+        {% if background_video or slideshow_images %}full-width-hero{% else %}has-gradient rounded-2xl{% endif %}">
+        {% if background_video %}
+            <video autoplay muted loop id="bg-video">
+                <source src="{{ background_video.file.url }}" type="video/mp4">
+            </video>
+        {% endif %}
+        {% if slideshow_images %}
+            <div class="slideshow-container">
+                {% for image in slideshow_images %}
+                    <div class="slide" style="background-image: url('{{ image.file.url }}');"></div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% if background_video or slideshow_images %}
+            <div class="hero-overlay"></div>
+        {% endif %}
+        <div class="hero-content px-4 sm:px-8 py-12 md:py-24">
             <div class="max-w-4xl mx-auto text-center">
-                <h1 class="text-3xl sm:text-4xl md:text-6xl font-bold mb-6 animate-pulse">
-                    🎉 Josephite Tech Carnival 2025
+                <h1 class="tech-title text-3xl sm:text-4xl md:text-6xl font-bold mb-6">
+                    SJIS 1ST INTERSCHOOL TECH CARNIVAL 2025
                 </h1>
                 <p class="text-lg sm:text-xl md:text-2xl mb-8 text-blue-100">
                     Join the Ultimate Technology Competition & Showcase
@@ -80,7 +208,7 @@
                     </div>
                 </div>
                 {% endif %}
-                <a href="{% url 'register' %}" class="inline-flex items-center bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-xl text-base sm:text-lg transition-all transform hover:scale-105 shadow-lg">
+                <a href="{% url 'register' %}" class="register-now-btn inline-flex items-center bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-xl text-base sm:text-lg transition-all transform hover:scale-105 shadow-lg">
                     <i class="fas fa-rocket mr-2"></i>
                     <span class="hidden sm:inline">Register Now - Start Your Journey!</span>
                     <span class="sm:hidden">Register Now!</span>
@@ -89,11 +217,22 @@
         </div>
     </div>
 
+    <!-- Social Media Links -->
+    {% if social_media_profiles %}
+    <div class="flex justify-center space-x-6 mb-12">
+        {% for profile in social_media_profiles %}
+            <a href="{{ profile.url }}" target="_blank" class="text-gray-500 hover:text-gray-800 transition-colors">
+                <i class="fab fa-{{ profile.platform|lower }} fa-2x"></i>
+            </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- Events Showcase -->
     <div id="events" class="mb-12">
         <h2 class="text-2xl sm:text-3xl font-bold text-center mb-8 text-gray-800">
             <i class="fas fa-star text-yellow-500 mr-2"></i>
-            Available Events
+            Latest Events
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for event in events %}
@@ -265,6 +404,33 @@
             document.getElementById("minutes").innerText = minutes;
             document.getElementById("seconds").innerText = seconds;
         }, 1000);
+    });
+</script>
+{% endif %}
+{% if slideshow_images %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const slides = document.querySelectorAll('.slide');
+        let currentSlide = 0;
+
+        function showSlide(index) {
+            slides.forEach((slide, i) => {
+                slide.classList.remove('active');
+                if (i === index) {
+                    slide.classList.add('active');
+                }
+            });
+        }
+
+        function nextSlide() {
+            currentSlide = (currentSlide + 1) % slides.length;
+            showSlide(currentSlide);
+        }
+
+        if (slides.length > 0) {
+            showSlide(currentSlide);
+            setInterval(nextSlide, 5000); // Change slide every 5 seconds
+        }
     });
 </script>
 {% endif %}

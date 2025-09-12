@@ -1,0 +1,680 @@
+{% extends 'base.html' %}
+
+{% block title %}Join Us - Josephite Tech Carnival 2025{% endblock %}
+
+{% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% endblock %}
+
+{% block styles %}
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        --warning-gradient: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+        --glass-bg: rgba(255, 255, 255, 0.1);
+        --glass-border: rgba(255, 255, 255, 0.2);
+        --shadow-light: 0 8px 32px rgba(31, 38, 135, 0.37);
+        --shadow-heavy: 0 25px 50px rgba(0, 0, 0, 0.15);
+        --neon-glow: 0 0 20px rgba(79, 172, 254, 0.6);
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        min-height: 100vh;
+        overflow-x: hidden;
+        position: relative;
+    }
+
+    /* Animated Background */
+    .animated-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        opacity: 0.1;
+    }
+
+    .floating-shapes {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+    }
+
+    .shape {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        animation: float 20s infinite linear;
+    }
+
+    .shape:nth-child(1) {
+        width: 100px;
+        height: 100px;
+        top: 20%;
+        left: 10%;
+        animation-delay: 0s;
+    }
+
+    .shape:nth-child(2) {
+        width: 60px;
+        height: 60px;
+        top: 60%;
+        left: 80%;
+        animation-delay: 5s;
+    }
+
+    .shape:nth-child(3) {
+        width: 80px;
+        height: 80px;
+        top: 80%;
+        left: 20%;
+        animation-delay: 10s;
+    }
+
+    .shape:nth-child(4) {
+        width: 120px;
+        height: 120px;
+        top: 10%;
+        right: 10%;
+        animation-delay: 15s;
+    }
+
+    @keyframes float {
+        0% {
+            transform: translateY(0px) rotate(0deg);
+            opacity: 0.1;
+        }
+        25% {
+            opacity: 0.3;
+        }
+        50% {
+            transform: translateY(-100px) rotate(180deg);
+            opacity: 0.1;
+        }
+        75% {
+            opacity: 0.2;
+        }
+        100% {
+            transform: translateY(0px) rotate(360deg);
+            opacity: 0.1;
+        }
+    }
+
+    /* Hero Section */
+    .hero-section {
+        padding: 4rem 0 2rem 0;
+        text-align: center;
+        position: relative;
+        z-index: 10;
+    }
+
+    .hero-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 4rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 50%, #e0f2fe 100%);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 4px 20px rgba(255, 255, 255, 0.3);
+        margin-bottom: 1rem;
+        animation: titleGlow 3s ease-in-out infinite alternate;
+    }
+
+    @keyframes titleGlow {
+        from {
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+        }
+        to {
+            filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.6));
+        }
+    }
+
+    .hero-subtitle {
+        font-size: 1.5rem;
+        font-weight: 300;
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 3rem;
+        animation: fadeInUp 1s ease-out 0.5s both;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Social Media Grid */
+    .social-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .social-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        border-radius: 25px;
+        padding: 3rem 2rem;
+        text-decoration: none;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.23, 1, 0.320, 1);
+        box-shadow: var(--shadow-light);
+        cursor: pointer;
+        transform-style: preserve-3d;
+    }
+
+    .social-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.6s;
+    }
+
+    .social-card:hover::before {
+        left: 100%;
+    }
+
+    .social-card:hover {
+        transform: translateY(-15px) rotateX(5deg);
+        box-shadow: var(--shadow-heavy), var(--neon-glow);
+        border-color: rgba(255, 255, 255, 0.4);
+    }
+
+    .social-icon-container {
+        position: relative;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 120px;
+    }
+
+    .social-icon {
+        font-size: 4rem;
+        transition: all 0.3s ease;
+        position: relative;
+        z-index: 10;
+    }
+
+    .icon-glow {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        opacity: 0;
+        transition: all 0.3s ease;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            transform: translate(-50%, -50%) scale(0.8);
+            opacity: 0.7;
+        }
+        50% {
+            transform: translate(-50%, -50%) scale(1.2);
+            opacity: 0.3;
+        }
+        100% {
+            transform: translate(-50%, -50%) scale(0.8);
+            opacity: 0.7;
+        }
+    }
+
+    .social-card:hover .icon-glow {
+        opacity: 0.8;
+        transform: translate(-50%, -50%) scale(1.5);
+    }
+
+    .social-card:hover .social-icon {
+        transform: scale(1.2) rotate(5deg);
+    }
+
+    /* Platform-specific colors */
+    .facebook .social-icon {
+        color: #1877f2;
+    }
+
+    .facebook .icon-glow {
+        background: radial-gradient(circle, rgba(24, 119, 242, 0.3) 0%, transparent 70%);
+        box-shadow: 0 0 30px rgba(24, 119, 242, 0.5);
+    }
+
+    .instagram .social-icon {
+        background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .instagram .icon-glow {
+        background: radial-gradient(circle, rgba(225, 48, 108, 0.3) 0%, transparent 70%);
+        box-shadow: 0 0 30px rgba(225, 48, 108, 0.5);
+    }
+
+    .twitter .social-icon {
+        color: #1da1f2;
+    }
+
+    .twitter .icon-glow {
+        background: radial-gradient(circle, rgba(29, 161, 242, 0.3) 0%, transparent 70%);
+        box-shadow: 0 0 30px rgba(29, 161, 242, 0.5);
+    }
+
+    .linkedin .social-icon {
+        color: #0077b5;
+    }
+
+    .linkedin .icon-glow {
+        background: radial-gradient(circle, rgba(0, 119, 181, 0.3) 0%, transparent 70%);
+        box-shadow: 0 0 30px rgba(0, 119, 181, 0.5);
+    }
+
+    .youtube .social-icon {
+        color: #ff0000;
+    }
+
+    .youtube .icon-glow {
+        background: radial-gradient(circle, rgba(255, 0, 0, 0.3) 0%, transparent 70%);
+        box-shadow: 0 0 30px rgba(255, 0, 0, 0.5);
+    }
+
+    .discord .social-icon {
+        color: #00ff88;
+        text-shadow: 0 0 20px rgba(0, 255, 136, 0.8), 0 0 40px rgba(0, 255, 136, 0.4);
+        filter: brightness(1.8) saturate(1.5);
+    }
+
+    .discord .icon-glow {
+        background: radial-gradient(circle, rgba(0, 255, 136, 0.5) 0%, rgba(0, 255, 136, 0.2) 50%, transparent 100%);
+        box-shadow: 0 0 50px rgba(0, 255, 136, 0.6);
+    }
+
+    .social-name {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        text-align: center;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .social-description {
+        font-size: 1rem;
+        opacity: 0.8;
+        text-align: center;
+        line-height: 1.6;
+        font-weight: 300;
+    }
+
+    /* Join Button */
+    .join-btn {
+        display: inline-block;
+        margin-top: 1.5rem;
+        padding: 0.75rem 2rem;
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50px;
+        color: white;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+    }
+
+    .join-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2);
+    }
+
+    /* Call to Action Section */
+    .cta-section {
+        text-align: center;
+        padding: 4rem 2rem;
+        margin-top: 4rem;
+    }
+
+    .cta-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 2.5rem;
+        font-weight: 600;
+        color: white;
+        margin-bottom: 1rem;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .cta-text {
+        font-size: 1.2rem;
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 2rem;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+        line-height: 1.6;
+    }
+
+    .cta-button {
+        display: inline-block;
+        padding: 1rem 3rem;
+        background: var(--accent-gradient);
+        border: none;
+        border-radius: 50px;
+        color: white;
+        font-size: 1.1rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+        cursor: pointer;
+    }
+
+    .cta-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(79, 172, 254, 0.6);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .hero-title {
+            font-size: 2.5rem;
+        }
+
+        .hero-subtitle {
+            font-size: 1.2rem;
+        }
+
+        .social-grid {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            padding: 1rem;
+        }
+
+        .social-card {
+            padding: 2rem 1.5rem;
+        }
+
+        .social-icon {
+            font-size: 3rem;
+        }
+
+        .cta-title {
+            font-size: 2rem;
+        }
+
+        .cta-text {
+            font-size: 1rem;
+        }
+    }
+
+    /* Loading animations */
+    .fade-in {
+        opacity: 0;
+        transform: translateY(30px);
+        animation: fadeInUp 0.8s ease-out forwards;
+    }
+
+    .fade-in:nth-child(1) { animation-delay: 0.1s; }
+    .fade-in:nth-child(2) { animation-delay: 0.2s; }
+    .fade-in:nth-child(3) { animation-delay: 0.3s; }
+    .fade-in:nth-child(4) { animation-delay: 0.4s; }
+    .fade-in:nth-child(5) { animation-delay: 0.5s; }
+    .fade-in:nth-child(6) { animation-delay: 0.6s; }
+
+    /* Particle effect on hover */
+    .social-card::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        transform: translate(-50%, -50%);
+        transition: all 0.6s ease;
+    }
+
+    .social-card:hover::after {
+        width: 300px;
+        height: 300px;
+        opacity: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Animated Background -->
+<div class="animated-bg">
+    <div class="floating-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+</div>
+
+<!-- Hero Section -->
+<div class="hero-section">
+    <h1 class="hero-title">Join Our Universe</h1>
+    <p class="hero-subtitle">Connect, collaborate, and be part of something extraordinary</p>
+</div>
+
+<!-- Social Media Grid -->
+<div class="social-grid">
+    {% for profile in social_media_profiles %}
+    <a href="{{ profile.url }}" target="_blank" rel="noopener noreferrer" 
+       class="social-card {{ profile.platform|lower }} fade-in">
+        
+        <div class="social-icon-container">
+            <div class="icon-glow"></div>
+            <i class="fab fa-{{ profile.platform|lower }} social-icon"></i>
+        </div>
+        
+        <h2 class="social-name">{{ profile.platform|title }}</h2>
+        
+        <p class="social-description">
+            {% if profile.platform == 'FACEBOOK' %}
+                Stay updated with our latest events, announcements, and behind-the-scenes content.
+            {% elif profile.platform == 'INSTAGRAM' %}
+                Get visual insights, event highlights, and exclusive moments from our community.
+            {% elif profile.platform == 'TWITTER' %}
+                Join real-time conversations, get instant updates, and engage with our community.
+            {% elif profile.platform == 'LINKEDIN' %}
+                Connect professionally, explore career opportunities, and network with industry leaders.
+            {% elif profile.platform == 'YOUTUBE' %}
+                Watch event recordings, tutorials, tech talks, and educational content.
+            {% elif profile.platform == 'DISCORD' %}
+                Join our active community, participate in discussions, and get real-time support.
+            {% else %}
+                Connect with us on {{ profile.platform|title }} for more updates and community interaction.
+            {% endif %}
+        </p>
+        
+        <div class="join-btn">
+            Join Now
+        </div>
+    </a>
+    {% endfor %}
+</div>
+
+<!-- Call to Action Section -->
+<div class="cta-section">
+    <h2 class="cta-title">Ready to Make an Impact?</h2>
+    <p class="cta-text">
+        Be part of a community that's shaping the future of technology. 
+        Join thousands of innovators, creators, and dreamers who are making a difference.
+    </p>
+    <a href="#contact" class="cta-button">
+        Get Started Today
+    </a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+    // Intersection Observer for animations
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.animationPlayState = 'running';
+            }
+        });
+    }, observerOptions);
+
+    // Observe all fade-in elements
+    document.querySelectorAll('.fade-in').forEach((el, index) => {
+        el.style.animationPlayState = 'paused';
+        el.style.animationDelay = `${index * 0.1}s`;
+        observer.observe(el);
+    });
+
+    // Add click analytics
+    document.querySelectorAll('.social-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+            const platform = this.classList[1]; // Get platform class
+            console.log(`User clicked on ${platform} social media link`);
+            
+            // Add ripple effect
+            const ripple = document.createElement('div');
+            ripple.style.cssText = `
+                position: absolute;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.3);
+                pointer-events: none;
+                transform: scale(0);
+                animation: ripple 0.6s linear;
+                width: 100px;
+                height: 100px;
+                left: ${e.offsetX - 50}px;
+                top: ${e.offsetY - 50}px;
+            `;
+            
+            this.appendChild(ripple);
+            
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+        });
+    });
+
+    // Add ripple animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Smooth scrolling for CTA button
+    document.querySelector('.cta-button').addEventListener('click', function(e) {
+        e.preventDefault();
+        // Add smooth scroll behavior or redirect as needed
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    });
+
+    // Add dynamic particle effects
+    function createParticle(x, y) {
+        const particle = document.createElement('div');
+        particle.style.cssText = `
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            pointer-events: none;
+            left: ${x}px;
+            top: ${y}px;
+            animation: particleFloat 2s ease-out forwards;
+            z-index: 1000;
+        `;
+        
+        document.body.appendChild(particle);
+        
+        setTimeout(() => {
+            particle.remove();
+        }, 2000);
+    }
+
+    // Add particle float animation
+    const particleStyle = document.createElement('style');
+    particleStyle.textContent = `
+        @keyframes particleFloat {
+            0% {
+                opacity: 1;
+                transform: translateY(0px) scale(0);
+            }
+            50% {
+                opacity: 0.8;
+                transform: translateY(-50px) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-100px) scale(0.5);
+            }
+        }
+    `;
+    document.head.appendChild(particleStyle);
+
+    // Add particles on card hover
+    document.querySelectorAll('.social-card').forEach(card => {
+        card.addEventListener('mouseenter', function(e) {
+            const rect = this.getBoundingClientRect();
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    createParticle(
+                        rect.left + Math.random() * rect.width,
+                        rect.top + Math.random() * rect.height
+                    );
+                }, i * 100);
+            }
+        });
+    });
+
+    // Performance optimization: Reduce animations on low-end devices
+    if (navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4) {
+        document.documentElement.style.setProperty('--animation-duration', '1s');
+    }
+</script>
+{% endblock %}

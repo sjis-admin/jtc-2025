@@ -25,7 +25,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from .models import Student, Event, Payment, Receipt, StudentEventRegistration, PaymentAttempt, School, Team, TeamMember, Countdown
+from .models import (Student, Event, Payment, Receipt, 
+                    StudentEventRegistration, PaymentAttempt, School, 
+                    Team, TeamMember, Countdown, HomePageAsset, SocialMediaProfile,
+                    TeamMemberProfile, PastEventImage)
 from .forms import StudentRegistrationForm
 from .sslcommerz import SSLCOMMERZ
 
@@ -50,11 +53,22 @@ def home(request):
 
         # Get active countdown timer
         countdown = Countdown.objects.filter(is_active=True).first()
+
+        # Get home page assets
+        home_page_assets = HomePageAsset.objects.filter(is_active=True)
+        slideshow_images = home_page_assets.filter(asset_type='IMAGE')
+        background_video = home_page_assets.filter(asset_type='VIDEO').first()
+
+        # Get social media profiles
+        social_media_profiles = SocialMediaProfile.objects.filter(is_active=True)
         
         context = {
             'events': active_events_list,
             'stats': stats,
             'countdown': countdown,
+            'slideshow_images': slideshow_images,
+            'background_video': background_video,
+            'social_media_profiles': social_media_profiles,
         }
         
         return render(request, 'registration/home.html', context)
@@ -152,7 +166,7 @@ def register(request):
                     logger.info(f'Student registered successfully: {student.name} (ID: {student.registration_id})')
 
                     # Redirect to payment
-                    messages.success(request, 'Registration successful! Please proceed with payment.')
+                    messages.success(request, 'Registration successful!')
                     return redirect('payment_gateway', student_id=student.id)
 
             except Exception as e:
@@ -285,76 +299,35 @@ def payment_gateway(request, student_id):
         )
         
         # Prepare SSL Commerz data with sanitization
-        post_data = sanitize_payment_data({
-            'store_id': settings.SSLCOMMERZ_STORE_ID,
-            'store_passwd': settings.SSLCOMMERZ_STORE_PASSWORD,
-            'total_amount': float(student.total_amount),
-            'currency': 'BDT',
-            'tran_id': transaction_id,
-            'success_url': settings.SITE_URL + reverse('payment_success', kwargs={'student_id': student.id}),
-            'fail_url': settings.SITE_URL + reverse('payment_fail', kwargs={'student_id': student.id}),
-            'cancel_url': settings.SITE_URL + reverse('payment_cancel', kwargs={'student_id': student.id}),
-            'ipn_url': settings.SITE_URL + reverse('payment_ipn'),
+        sslcommerz = SSLCOMMERZ()
+        response_data = sslcommerz.create_session(
+            amount=student.total_amount,
+            tran_id=transaction_id,
+            cust_name=student.name,
+            cust_email=student.email,
+            cust_phone=student.mobile_number,
+            student_id=student.id,
+            cus_add1=student.school_college.name,
+            cus_city='Dhaka',
+            cus_state='Dhaka',
+            cus_postcode='1000',
+            cus_country='Bangladesh'
+        )
+
+        if response_data.get('status') == 'SUCCESS':
+            payment.sessionkey = response_data.get('sessionkey', '')
+            payment.save()
             
-            # Customer information (sanitized)
-            'cus_name': student.name[:50],  # Limit length
-            'cus_email': student.email,
-            'cus_add1': student.school_college.name[:100] if student.school_college else '',  # Limit length
-            'cus_city': 'Dhaka',
-            'cus_state': 'Dhaka',
-            'cus_postcode': '1000',
-            'cus_country': 'Bangladesh',
-            'cus_phone': student.mobile_number,
-            
-            # Product information
-            'product_name': f'JTC 2025 Registration - {student.name}',
-            'product_category': 'Event Registration',
-            'product_profile': 'general',
-            
-            # Shipping information
-            'shipping_method': 'NO',
-            'num_of_item': len(student.events.all()),
-            
-            # Security and validation
-            'value_a': student.registration_id,  # For verification
-            'value_b': payment.payment_hash,     # For integrity check
-        })
-        
-        # SSL Commerz API endpoint
-        if settings.SSLCOMMERZ_IS_SANDBOX:
-            sslcommerz_url = 'https://sandbox.sslcommerz.com/gwprocess/v4/api.php'
-        else:
-            sslcommerz_url = 'https://securepay.sslcommerz.com/gwprocess/v4/api.php'
-        
-        try:
-            response = requests.post(
-                sslcommerz_url, 
-                data=post_data,
-                timeout=30,
-                headers={'User-Agent': 'JTC-Registration-System/1.0'}
-            )
-            response.raise_for_status()
-            
-            response_data = response.json()
-            
-            if response_data.get('status') == 'SUCCESS':
-                payment.sessionkey = response_data.get('sessionkey', '')
-                payment.save()
-                
-                gateway_url = response_data.get('GatewayPageURL')
-                if gateway_url:
-                    logger.info(f'Payment gateway initiated for student {student.id}, transaction {transaction_id}')
-                    return redirect(gateway_url)
-                else:
-                    raise ValueError('Gateway URL not provided')
+            gateway_url = response_data.get('GatewayPageURL')
+            if gateway_url:
+                logger.info(f'Payment gateway initiated for student {student.id}, transaction {transaction_id}')
+                return redirect(gateway_url)
             else:
-                error_msg = response_data.get('failedreason', 'Payment gateway initialization failed')
-                raise ValueError(error_msg)
-                
-        except requests.exceptions.RequestException as e:
-            logger.error(f'SSL Commerz API error: {e}')
-            raise ValueError('Payment gateway service unavailable')
-        
+                raise ValueError('Gateway URL not provided')
+        else:
+            logger.error(f"SSL Commerz payment gateway initialization failed. Response: {response_data}")
+            error_msg = response_data.get('failedreason', 'Payment gateway initialization failed')
+            raise ValueError(error_msg)
     except Exception as e:
         # Log payment attempt as failed
         PaymentAttempt.objects.filter(
@@ -376,7 +349,8 @@ def payment_gateway(request, student_id):
         messages.error(request, 'Payment processing failed. Please try again.')
         return redirect('register')
 
-@ratelimit(key='ip', rate='10/m', method='GET')
+@csrf_exempt
+@ratelimit(key='ip', rate='10/m', method=['GET', 'POST'])
 def payment_success(request, student_id):
     """
     Handle successful payment with comprehensive verification
@@ -388,11 +362,25 @@ def payment_success(request, student_id):
         student = get_object_or_404(Student.objects.prefetch_related('events'), id=student_id, is_deleted=False)
         
         # Get transaction details from SSL Commerz
-        tran_id = request.GET.get('tran_id')
-        val_id = request.GET.get('val_id')
-        amount = request.GET.get('amount')
-        card_type = request.GET.get('card_type', '')
-        
+        if request.method == 'POST':
+            post_data = request.POST
+            tran_id = post_data.get('tran_id')
+            val_id = post_data.get('val_id')
+            amount = post_data.get('amount')
+            card_type = post_data.get('card_type', '')
+            registration_id = post_data.get('value_a', '')
+            received_hash = post_data.get('value_b', '')
+            callback_data = dict(request.POST.items())
+        else:
+            get_data = request.GET
+            tran_id = get_data.get('tran_id')
+            val_id = get_data.get('val_id')
+            amount = get_data.get('amount')
+            card_type = get_data.get('card_type', '')
+            registration_id = get_data.get('value_a', '')
+            received_hash = get_data.get('value_b', '')
+            callback_data = dict(request.GET.items())
+
         if not all([tran_id, val_id, amount]):
             raise ValueError('Missing required payment parameters')
         
@@ -411,24 +399,23 @@ def payment_success(request, student_id):
             messages.error(request, 'Invalid payment transaction.')
             return redirect('home')
         
-        # Verify integrity of the callback
-        registration_id = request.GET.get('value_a')
-        received_hash = request.GET.get('value_b')
-
-        if registration_id != str(payment.student.registration_id):
+        # Verify integrity of the callback - Fixed hash comparison
+        if registration_id != str(student.id):  # Compare with student.id instead of registration_id
             log_security_alert(
                 'PAYMENT_FRAUD',
-                'Registration ID mismatch in payment success callback',
+                'Student ID mismatch in payment success callback',
                 ip_address,
                 user_agent,
                 student=student,
                 payment=payment,
-                data={'expected': str(payment.student.registration_id), 'received': registration_id}
+                data={'expected': str(student.id), 'received': registration_id}
             )
             messages.error(request, 'Invalid payment transaction.')
             return redirect('home')
 
-        if not hmac.compare_digest(payment.payment_hash, received_hash):
+        # Verify security hash - Fixed hash generation and comparison
+        expected_hash = hashlib.sha256(f"{tran_id}{student.id}{payment.amount}".encode()).hexdigest()
+        if not hmac.compare_digest(expected_hash, received_hash):
             log_security_alert(
                 'PAYMENT_FRAUD',
                 'Payment hash mismatch in payment success callback',
@@ -436,7 +423,7 @@ def payment_success(request, student_id):
                 user_agent,
                 student=student,
                 payment=payment,
-                data={'expected': payment.payment_hash, 'received': received_hash}
+                data={'expected': expected_hash, 'received': received_hash}
             )
             messages.error(request, 'Invalid payment transaction.')
             return redirect('home')
@@ -490,23 +477,8 @@ def payment_success(request, student_id):
             messages.error(request, 'Payment verification failed. Please contact support.')
             return redirect('payment_fail', student_id=student.id)
         
-        # Verify hash signature if present
-        callback_data = dict(request.GET.items())
-        if not verify_sslcommerz_callback(callback_data, settings.SSLCOMMERZ_STORE_PASSWORD):
-            log_security_alert(
-                'INVALID_HASH',
-                'SSL Commerz callback hash verification failed',
-                ip_address,
-                user_agent,
-                student=student,
-                payment=payment,
-                data={'callback_data': callback_data}
-            )
-            messages.error(request, 'Payment verification failed.')
-            return redirect('payment_fail', student_id=student.id)
-        
         # Final verification checks
-        if (validation_result.get('status') == 'VALID' and 
+        if (validation_result.get('status') in ['VALID', 'VALIDATED'] and 
             validation_result.get('tran_id') == tran_id and
             verify_payment_amount(payment.amount, validation_result.get('amount', 0))):
             
@@ -593,66 +565,135 @@ def payment_success(request, student_id):
         messages.error(request, 'Payment processing error.')
         return redirect('payment_fail', student_id=student_id)
 
-@ratelimit(key='ip', rate='10/m', method='GET')
+@csrf_exempt
+@ratelimit(key='ip', rate='10/m', method=['GET', 'POST'])
 def payment_fail(request, student_id):
     """
-    Handle failed payment
+    Handle failed payment with detailed error information
     """
     try:
         student = get_object_or_404(Student, id=student_id, is_deleted=False)
         
-        # Get transaction details
-        tran_id = request.GET.get('tran_id')
-        error_msg = request.GET.get('error', 'Payment failed')
+        # Get transaction details from URL parameters
+        if request.method == 'POST':
+            post_data = request.POST
+            tran_id = post_data.get('tran_id')
+            error_code = post_data.get('error')
+            failed_reason = post_data.get('failedreason', '')
+        else:
+            get_data = request.GET
+            tran_id = get_data.get('tran_id')
+            error_code = get_data.get('error')
+            failed_reason = get_data.get('failedreason', '')
         
-        # Update payment status if exists
+        # Map common SSLCommerz error codes to user-friendly messages
+        error_messages = {
+            'FAILED': 'Your payment could not be processed. Please try again.',
+            'CANCELLED': 'Payment was cancelled by user.',
+            'UNATTEMPTED': 'Payment was not attempted.',
+            'EXPIRED': 'Payment session has expired. Please try again.',
+            'INCOMPLETE': 'Payment process was incomplete.',
+            'INVALID_TRANSACTION': 'Invalid transaction. Please start over.',
+            'AMOUNT_MISMATCH': 'Payment amount mismatch detected.',
+            'CARD_DECLINED': 'Your card was declined. Please try a different payment method.',
+            'INSUFFICIENT_FUNDS': 'Insufficient funds in your account.',
+            'NETWORK_ERROR': 'Network error occurred. Please check your connection and try again.',
+            'BANK_DECLINE': 'Transaction was declined by your bank.',
+            'INVALID_CARD': 'Invalid card information provided.',
+            'CARD_EXPIRED': 'Your card has expired.',
+            'PROCESSING_ERROR': 'Payment processing error. Please try again later.',
+        }
+        
+        # Determine error message
+        error_message = None
+        if error_code:
+            error_message = error_messages.get(error_code.upper(), f"Payment failed: {error_code}")
+        elif failed_reason:
+            error_message = f"Payment failed: {failed_reason}"
+        else:
+            error_message = "Payment could not be completed. Please try again."
+        
+        # Update payment status if transaction ID exists
         if tran_id:
             try:
                 payment = Payment.objects.get(transaction_id=tran_id, student=student)
                 payment.status = 'FAILED'
-                payment.gateway_response = dict(request.GET.items())
+                payment.gateway_response = {
+                    'error_code': error_code,
+                    'failed_reason': failed_reason,
+                    'callback_data': dict(request.GET.items())
+                }
                 payment.save()
                 
-                logger.info(f'Payment failed for student {student.id}, transaction {tran_id}')
+                logger.warning(f'Payment failed for student {student.id}, transaction {tran_id}, error: {error_code}')
+                
+                # Log security alert for suspicious patterns
+                if error_code in ['AMOUNT_MISMATCH', 'INVALID_TRANSACTION']:
+                    log_security_alert(
+                        'PAYMENT_FRAUD',
+                        f'Suspicious payment failure: {error_code}',
+                        get_client_ip(request),
+                        request.META.get('HTTP_USER_AGENT', ''),
+                        student=student,
+                        payment=payment,
+                        data={'error_code': error_code, 'failed_reason': failed_reason}
+                    )
+                
             except Payment.DoesNotExist:
-                pass
+                logger.error(f'Payment record not found for transaction {tran_id}')
         
         context = {
             'student': student,
-            'error_message': error_msg
+            'error_message': error_message,
+            'error_code': error_code,
+            'transaction_id': tran_id,
+            'can_retry': error_code not in ['AMOUNT_MISMATCH', 'INVALID_TRANSACTION'],  # Don't allow retry for suspicious errors
         }
         return render(request, 'registration/payment_fail.html', context)
         
     except Exception as e:
         logger.error(f'Payment fail handler error: {e}')
-        messages.error(request, 'An error occurred.')
+        messages.error(request, 'An error occurred while processing the payment failure.')
         return redirect('home')
 
-@ratelimit(key='ip', rate='10/m', method='GET')
+@csrf_exempt
+@ratelimit(key='ip', rate='10/m', method=['GET', 'POST'])
 def payment_cancel(request, student_id):
     """
-    Handle cancelled payment
+    Handle cancelled payment with user guidance
     """
     try:
         student = get_object_or_404(Student, id=student_id, is_deleted=False)
         
         # Get transaction details
-        tran_id = request.GET.get('tran_id')
+        if request.method == 'POST':
+            post_data = request.POST
+            tran_id = post_data.get('tran_id')
+            cancel_reason = post_data.get('cancel_reason', 'User cancelled the payment')
+        else:
+            get_data = request.GET
+            tran_id = get_data.get('tran_id')
+            cancel_reason = get_data.get('cancel_reason', 'User cancelled the payment')
         
         # Update payment status if exists
         if tran_id:
             try:
                 payment = Payment.objects.get(transaction_id=tran_id, student=student)
                 payment.status = 'CANCELLED'
-                payment.gateway_response = dict(request.GET.items())
+                payment.gateway_response = {
+                    'cancel_reason': cancel_reason,
+                    'callback_data': dict(request.GET.items())
+                }
                 payment.save()
                 
                 logger.info(f'Payment cancelled for student {student.id}, transaction {tran_id}')
             except Payment.DoesNotExist:
-                pass
+                logger.warning(f'Payment record not found for cancelled transaction {tran_id}')
         
         context = {
-            'student': student
+            'student': student,
+            'transaction_id': tran_id,
+            'cancel_reason': cancel_reason,
         }
         return render(request, 'registration/payment_cancel.html', context)
         
@@ -660,6 +701,124 @@ def payment_cancel(request, student_id):
         logger.error(f'Payment cancel handler error: {e}')
         messages.error(request, 'An error occurred.')
         return redirect('home')
+    
+def handle_payment_timeout(request):
+    """
+    Handle payment session timeout
+    """
+    student_id = request.GET.get('student_id')
+    tran_id = request.GET.get('tran_id')
+    
+    if student_id and tran_id:
+        try:
+            student = Student.objects.get(id=student_id, is_deleted=False)
+            payment = Payment.objects.get(transaction_id=tran_id, student=student)
+            
+            # Mark payment as expired
+            payment.status = 'EXPIRED'
+            payment.gateway_response = {'timeout_reason': 'Payment session expired'}
+            payment.save()
+            
+            messages.warning(request, 'Your payment session has expired. Please try again.')
+            return redirect('payment_gateway', student_id=student.id)
+            
+        except (Student.DoesNotExist, Payment.DoesNotExist):
+            pass
+    
+    messages.error(request, 'Payment session expired.')
+    return redirect('home')
+
+def check_payment_status(request, student_id, transaction_id):
+    """
+    Manual payment status check endpoint for uncertain cases
+    """
+    try:
+        student = get_object_or_404(Student, id=student_id, is_deleted=False)
+        payment = get_object_or_404(Payment, transaction_id=transaction_id, student=student)
+        
+        # Re-validate with SSLCommerz
+        if payment.status == 'PENDING':
+            sslcommerz = SSLCOMMERZ()
+            validation_data = {
+                'val_id': request.GET.get('val_id'),
+                'store_id': settings.SSLCOMMERZ_STORE_ID,
+                'store_passwd': settings.SSLCOMMERZ_STORE_PASSWORD,
+                'format': 'json'
+            }
+            
+            try:
+                validation_url = ('https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php' 
+                                 if settings.SSLCOMMERZ_IS_SANDBOX 
+                                 else 'https://securepay.sslcommerz.com/validator/api/validationserverAPI.php')
+                
+                response = requests.get(validation_url, params=validation_data, timeout=30)
+                response.raise_for_status()
+                result = response.json()
+                
+                if result.get('status') in ['VALID', 'VALIDATED']:
+                    # Update payment as successful
+                    with transaction.atomic():
+                        payment.status = 'SUCCESS'
+                        payment.gateway_response = result
+                        payment.completed_at = timezone.now()
+                        payment.save()
+                        
+                        student.is_paid = True
+                        student.payment_verified = True
+                        student.save()
+                    
+                    messages.success(request, 'Payment verification successful!')
+                    return redirect('payment_success', student_id=student.id)
+                else:
+                    messages.error(request, 'Payment verification failed.')
+                    return redirect('payment_fail', student_id=student.id)
+                    
+            except requests.exceptions.RequestException as e:
+                logger.error(f'Payment status check error: {e}')
+                messages.error(request, 'Unable to verify payment status. Please contact support.')
+        
+        # Return current status
+        if payment.status == 'SUCCESS':
+            return redirect('payment_success', student_id=student.id)
+        elif payment.status in ['FAILED', 'EXPIRED']:
+            return redirect('payment_fail', student_id=student.id)
+        elif payment.status == 'CANCELLED':
+            return redirect('payment_cancel', student_id=student.id)
+        else:
+            messages.info(request, f'Payment status: {payment.get_status_display()}')
+            return redirect('home')
+            
+    except Exception as e:
+        logger.error(f'Payment status check error: {e}')
+        messages.error(request, 'Error checking payment status.')
+        return redirect('home')
+    
+# Middleware function to handle expired payments automatically
+def cleanup_expired_payments():
+    """
+    Cleanup expired payments - can be called via cron job or management command
+    """
+    try:
+        expired_payments = Payment.objects.filter(
+            status='PENDING',
+            expires_at__lt=timezone.now()
+        )
+        
+        count = 0
+        for payment in expired_payments:
+            payment.status = 'EXPIRED'
+            payment.save()
+            count += 1
+        
+        if count > 0:
+            logger.info(f'Marked {count} payments as expired')
+        
+        return count
+        
+    except Exception as e:
+        logger.error(f'Error cleaning up expired payments: {e}')
+        return 0
+
 
 @csrf_exempt
 @require_POST
@@ -863,3 +1022,38 @@ def verify_receipt(request, receipt_number):
         logger.error(f"Error verifying receipt {receipt_number}: {e}")
         messages.error(request, "An error occurred while verifying the receipt.")
         return redirect('home')
+
+def events_page(request):
+    """
+    Dedicated page to list all events.
+    """
+    events = Event.objects.filter(is_active=True).order_by('-created_at')
+    context = {
+        'events': events,
+    }
+    return render(request, 'registration/events_page.html', context)
+
+def about_us(request):
+    """
+    About Us page with moderators, board members, and past event images.
+    """
+    moderators = TeamMemberProfile.objects.filter(member_type='MODERATOR')
+    board_members = TeamMemberProfile.objects.filter(member_type='BOARD_MEMBER')
+    past_event_images = PastEventImage.objects.all()
+    context = {
+        'moderators': moderators,
+        'board_members': board_members,
+        'past_event_images': past_event_images,
+    }
+    return render(request, 'registration/about_us.html', context)
+
+def join_us(request):
+    """
+    Join Us page with links to social media.
+    """
+    social_media_profiles = SocialMediaProfile.objects.filter(is_active=True)
+    context = {
+        'social_media_profiles': social_media_profiles,
+    }
+    return render(request, 'registration/join_us.html', context)
+

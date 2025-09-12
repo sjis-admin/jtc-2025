@@ -67,6 +67,12 @@
             });
         });
     </script>
+    <style>
+        .scrollable-content {
+            overflow-y: auto;
+            max-height: 100%;
+        }
+    </style>
     <script>
         tailwind.config = {
             theme: {
@@ -100,6 +106,15 @@
                     <a href="{% url 'home' %}" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">
                         <i class="fas fa-home mr-1"></i>Home
                     </a>
+                    <a href="{% url 'events_page' %}" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                        <i class="fas fa-calendar-alt mr-1"></i>Events
+                    </a>
+                    <a href="{% url 'about_us' %}" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                        <i class="fas fa-info-circle mr-1"></i>About Us
+                    </a>
+                    <a href="{% url 'join_us' %}" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                        <i class="fas fa-users mr-1"></i>Join Us
+                    </a>
                     <a href="{% url 'register' %}" class="bg-primary text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-medium transition-colors">
                         <i class="fas fa-user-plus mr-1"></i>Register Now
                     </a>
@@ -125,6 +140,15 @@
             <div class="px-2 pt-2 pb-3 space-y-1">
                 <a href="{% url 'home' %}" class="block text-gray-700 hover:text-primary hover:bg-gray-50 px-3 py-2 rounded-md text-base font-medium transition-colors">
                     <i class="fas fa-home mr-2"></i>Home
+                </a>
+                <a href="{% url 'events_page' %}" class="block text-gray-700 hover:text-primary hover:bg-gray-50 px-3 py-2 rounded-md text-base font-medium transition-colors">
+                    <i class="fas fa-calendar-alt mr-2"></i>Events
+                </a>
+                <a href="{% url 'about_us' %}" class="block text-gray-700 hover:text-primary hover:bg-gray-50 px-3 py-2 rounded-md text-base font-medium transition-colors">
+                    <i class="fas fa-info-circle mr-2"></i>About Us
+                </a>
+                <a href="{% url 'join_us' %}" class="block text-gray-700 hover:text-primary hover:bg-gray-50 px-3 py-2 rounded-md text-base font-medium transition-colors">
+                    <i class="fas fa-users mr-2"></i>Join Us
                 </a>
                 <a href="{% url 'register' %}" class="block bg-primary text-white hover:bg-blue-700 px-3 py-2 rounded-md text-base font-medium transition-colors">
                     <i class="fas fa-user-plus mr-2"></i>Register Now
@@ -219,5 +243,14 @@
 </script>
 {% endif %}
 {% endblock %}
+
+<div id="fullscreen-overlay" class="fixed inset-0 z-50 hidden bg-black bg-opacity-90 p-4 sm:p-8">
+    <button onclick="closeFullscreen()" class="absolute top-4 right-4 text-white text-4xl font-bold">&times;</button>
+    <div id="fullscreen-content" class="w-full h-full flex items-center justify-center">
+        <div class="scrollable-content w-full h-full">
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
