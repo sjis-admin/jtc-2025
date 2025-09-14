@@ -22,45 +22,6 @@ class School(models.Model):
     def __str__(self):
         return self.name
 
-from django.core.exceptions import ImproperlyConfigured
-
-class EncryptedField(models.TextField):
-    """Custom field for encrypting sensitive data"""
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Generate or get encryption key
-        key = getattr(settings, 'ENCRYPTION_KEY', None)
-        if key is None:
-            raise ImproperlyConfigured(
-                "You must set the ENCRYPTION_KEY in your settings file. "
-                "You can generate a new key with: from cryptography.fernet import Fernet; Fernet.generate_key()"
-            )
-        self.cipher_suite = Fernet(key)
-    
-    def from_db_value(self, value, expression, connection):
-        if value is None:
-            return value
-        try:
-            # Decrypt the value
-            return self.cipher_suite.decrypt(value.encode()).decode()
-        except Exception as e:
-            # Log the error and return the raw value
-            # In a real application, you might want to handle this differently
-            print(f"Error decrypting value: {e}")
-            return value
-    
-    def to_python(self, value):
-        if isinstance(value, str) or value is None:
-            return value
-        return str(value)
-    
-    def get_prep_value(self, value):
-        if value is None:
-            return value
-        # Encrypt the value
-        return self.cipher_suite.encrypt(value.encode()).decode()
-
 class Event(models.Model):
     EVENT_TYPE_CHOICES = [
         ('INDIVIDUAL', 'Individual'),
@@ -106,10 +67,22 @@ class Event(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        ordering = ['-created_at']
-    
+    def get_gradient_class(self):
+        """
+        Return CSS gradient class based on event name hash
+        """
+        gradient_classes = [
+            'gradient-primary',
+            'gradient-secondary', 
+            'gradient-accent',
+            'gradient-success',
+            'gradient-warning',
+            'gradient-info'
+        ]
+        # Use hash of event name to consistently assign gradient
+        hash_value = hash(self.name) % len(gradient_classes)
+        return gradient_classes[hash_value]
+
     def clean(self):
         if self.event_type == 'TEAM' and not self.max_team_size:
             raise ValidationError({'max_team_size': "Max team size is required for team events."})
@@ -579,3 +552,21 @@ class PastEventImage(models.Model):
 
     def __str__(self):
         return self.caption or 'Past Event Image'
+
+class ValorantBackgroundVideo(models.Model):
+    title = models.CharField(max_length=200)
+    video = models.FileField(upload_to='valorant_backgrounds/')
+    is_active = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title
+
+class SiteLogo(models.Model):
+    name = models.CharField(max_length=200)
+    logo = models.FileField(upload_to='site_logos/')
+    is_active = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name

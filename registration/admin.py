@@ -8,7 +8,8 @@ from django.contrib import messages
 from django.db.models import Count
 from .models import (Student, Event, Payment, AdminLog, Receipt, 
                     StudentEventRegistration, School, Countdown, 
-                    HomePageAsset, SocialMediaProfile, TeamMemberProfile, PastEventImage)
+                    HomePageAsset, SocialMediaProfile, TeamMemberProfile, PastEventImage,
+                    ValorantBackgroundVideo, SiteLogo)
 
 @admin.register(TeamMemberProfile)
 class TeamMemberProfileAdmin(admin.ModelAdmin):
@@ -17,6 +18,31 @@ class TeamMemberProfileAdmin(admin.ModelAdmin):
 @admin.register(PastEventImage)
 class PastEventImageAdmin(admin.ModelAdmin):
     list_display = ('caption',)
+
+@admin.register(ValorantBackgroundVideo)
+class ValorantBackgroundVideoAdmin(admin.ModelAdmin):
+    list_display = ('title', 'is_active', 'created_at')
+    list_filter = ('is_active',)
+    actions = ['activate', 'deactivate']
+
+    def activate(self, request, queryset):
+        queryset.update(is_active=True)
+    activate.short_description = "Mark selected videos as active"
+
+    def deactivate(self, request, queryset):
+        queryset.update(is_active=False)
+    deactivate.short_description = "Mark selected videos as inactive"
+
+@admin.register(SiteLogo)
+class SiteLogoAdmin(admin.ModelAdmin):
+    list_display = ('name', 'is_active', 'created_at')
+    list_filter = ('is_active',)
+    actions = ['activate']
+
+    def activate(self, request, queryset):
+        SiteLogo.objects.all().update(is_active=False)
+        queryset.update(is_active=True)
+    activate.short_description = "Mark selected logo as active"
 
 @admin.register(HomePageAsset)
 class HomePageAssetAdmin(admin.ModelAdmin):

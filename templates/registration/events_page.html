@@ -1,145 +1,865 @@
 {% extends 'base.html' %}
+{% load static %}
+{% load math_filters %}
 
 {% block title %}Events - Josephite Tech Carnival 2025{% endblock %}
 
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+{% endblock %}
+
 {% block styles %}
+{{ block.super }}
 <style>
-    .event-card {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .event-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    :root {
+        --primary: #6366f1;
+        --secondary: #8b5cf6;
+        --accent: #06b6d4;
+        --dark: #0f172a;
+        --darker: #020617;
+        --glass-bg: rgba(15, 23, 42, 0.8);
+        --glass-border: rgba(148, 163, 184, 0.1);
+        --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --gradient-accent: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #64748b;
     }
 
+    body {
+        font-family: 'Inter', sans-serif;
+        background: var(--darker);
+        color: var(--text-primary);
+        overflow-x: hidden;
+        scroll-behavior: smooth;
+    }
+
+    /* Advanced Background */
+    .bg-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        background: radial-gradient(ellipse at top, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                    radial-gradient(ellipse at bottom right, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                    radial-gradient(ellipse at bottom left, rgba(6, 182, 212, 0.1) 0%, transparent 50%),
+                    var(--darker);
+    }
+
+    .floating-orbs {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(2px);
+        opacity: 0.6;
+        animation: float 20s infinite linear;
+    }
+
+    .orb:nth-child(1) {
+        width: 300px;
+        height: 300px;
+        background: var(--gradient-primary);
+        top: 10%;
+        left: -10%;
+        animation-duration: 25s;
+    }
+
+    .orb:nth-child(2) {
+        width: 200px;
+        height: 200px;
+        background: var(--gradient-secondary);
+        top: 70%;
+        right: -5%;
+        animation-duration: 30s;
+        animation-direction: reverse;
+    }
+
+    .orb:nth-child(3) {
+        width: 150px;
+        height: 150px;
+        background: var(--gradient-accent);
+        top: 40%;
+        left: 80%;
+        animation-duration: 35s;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); }
+        33% { transform: translate(30px, -30px) rotate(120deg); }
+        66% { transform: translate(-20px, 20px) rotate(240deg); }
+    }
+
+    /* Header */
+    .header {
+        position: relative;
+        padding: 6rem 2rem 4rem;
+        text-align: center;
+        background: linear-gradient(180deg, rgba(99, 102, 241, 0.05) 0%, transparent 100%);
+    }
+
+    .hero-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: clamp(3rem, 8vw, 6rem);
+        font-weight: 800;
+        background: linear-gradient(135deg, #ffffff 0%, #a855f7 50%, #06b6d4 100%);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1rem;
+        letter-spacing: -0.02em;
+    }
+
+    .hero-subtitle {
+        font-size: 1.25rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+        max-width: 600px;
+        margin: 0 auto 2rem;
+        line-height: 1.6;
+    }
+
+    /* Event Grid */
+    .events-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 2rem 4rem;
+    }
+
+    .events-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 2rem;
+        margin-bottom: 4rem;
+    }
+
+    /* Event Card */
+    .event-card {
+        position: relative;
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        padding: 0;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        cursor: pointer;
+    }
+
+    .event-card:hover {
+        transform: translateY(-8px);
+        border-color: rgba(148, 163, 184, 0.2);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25),
+                    0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+
+    .event-image-container {
+        position: relative;
+        height: 220px;
+        overflow: hidden;
+        background: var(--gradient-primary);
+    }
+
+    .event-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    .event-card:hover .event-image {
+        transform: scale(1.05);
+    }
+
+    .event-default-image {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        color: white;
+        background: var(--gradient-primary);
+    }
+
+    .event-type-badge {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        padding: 0.5rem 1rem;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(10px);
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .badge-individual {
+        color: #22d3ee;
+        border: 1px solid rgba(34, 211, 238, 0.3);
+    }
+
+    .badge-team {
+        color: #a78bfa;
+        border: 1px solid rgba(167, 139, 250, 0.3);
+    }
+
+    .event-content {
+        padding: 2rem;
+    }
+
+    .event-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.75rem;
+        color: var(--text-primary);
+        line-height: 1.3;
+    }
+
+    .event-description {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        line-height: 1.6;
+        margin-bottom: 1.5rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .event-meta {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        flex-wrap: wrap;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .event-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: auto;
+    }
+
+    .event-fee {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1.75rem;
+        font-weight: 800;
+        background: var(--gradient-primary);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .view-rules-btn {
+        padding: 0.75rem 1.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        color: var(--text-primary);
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    .view-rules-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+        color: var(--text-primary);
+    }
+
+    /* Advanced Modal System */
     .modal-overlay {
-        transition: opacity 0.3s ease;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
     }
 
     .modal-container {
-        transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.9);
+        z-index: 1001;
+        width: 95%;
+        max-width: 900px;
+        max-height: 90vh;
+        background: var(--glass-bg);
+        backdrop-filter: blur(30px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .modal-overlay.active .modal-container {
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    .modal-header {
+        padding: 2rem;
+        border-bottom: 1px solid var(--glass-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(99, 102, 241, 0.05);
+    }
+
+    .modal-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .modal-subtitle {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+    }
+
+    .modal-close {
+        width: 40px;
+        height: 40px;
+        border: none;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        color: var(--text-secondary);
+        font-size: 1.25rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-close:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: var(--text-primary);
+        transform: rotate(90deg);
+    }
+
+    .modal-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 2rem;
+    }
+
+    /* Rules Content Styles */
+    .rules-text {
+        font-size: 1rem;
+        line-height: 1.8;
+        color: var(--text-secondary);
+        white-space: pre-line;
+    }
+
+    .rules-text h1, .rules-text h2, .rules-text h3 {
+        color: var(--text-primary);
+        margin: 1.5rem 0 1rem 0;
+        font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .rules-text ul, .rules-text ol {
+        margin-left: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .rules-text li {
+        margin-bottom: 0.5rem;
+    }
+
+    .rules-image {
+        width: 100%;
+        height: auto;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .pdf-container {
+        width: 100%;
+        height: 60vh;
+        border: none;
+        border-radius: 12px;
+        background: #fff;
+    }
+
+    /* Loading State */
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        grid-column: 1 / -1;
+    }
+
+    .empty-icon {
+        width: 80px;
+        height: 80px;
+        background: rgba(99, 102, 241, 0.1);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 2rem;
+        font-size: 2rem;
+        color: var(--primary);
+    }
+
+    .empty-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+    }
+
+    .empty-description {
+        color: var(--text-secondary);
+        font-size: 1rem;
+        line-height: 1.6;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    /* Animations */
+    .animate-in {
+        animation: slideInUp 0.6s ease-out forwards;
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    @keyframes slideInUp {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Scroll to top button */
+    .scroll-top-btn {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        width: 50px;
+        height: 50px;
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        border-radius: 50%;
+        color: var(--text-primary);
+        font-size: 1.25rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        opacity: 0;
+        transform: translateY(20px);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .scroll-top-btn.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .scroll-top-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .events-grid {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        .hero-title {
+            font-size: 3rem;
+        }
+
+        .event-content {
+            padding: 1.5rem;
+        }
+
+        .modal-container {
+            width: 95%;
+            max-height: 85vh;
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .event-meta {
+            gap: 1rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .header {
+            padding: 4rem 1rem 3rem;
+        }
+
+        .events-container {
+            padding: 0 1rem 4rem;
+        }
+
+        .events-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .event-footer {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: stretch;
+        }
+
+        .view-rules-btn {
+            justify-content: center;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-bold text-center mb-12 text-gray-800">Our Events</h1>
+<div class="bg-container">
+    <div class="floating-orbs">
+        <div class="orb"></div>
+        <div class="orb"></div>
+        <div class="orb"></div>
+    </div>
+</div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+<header class="header">
+    <h1 class="hero-title">Events</h1>
+    <p class="hero-subtitle">
+        Explore our exciting competitions and challenges designed to showcase your talents and skills
+    </p>
+</header>
+
+<main class="events-container">
+    <div class="events-grid" id="eventsGrid">
         {% for event in events %}
-        <div class="event-card bg-white rounded-lg shadow-lg overflow-hidden">
-            {% if event.event_image %}
-                <img src="{{ event.event_image.url }}" alt="{{ event.name }}" class="w-full h-48 object-cover">
-            {% else %}
-                <div class="w-full h-48 bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                    <i class="fas fa-star text-white text-4xl"></i>
-                </div>
-            {% endif %}
-            <div class="p-6">
-                <h2 class="text-2xl font-bold mb-2 text-gray-800">{{ event.name }}</h2>
-                <p class="text-gray-600 mb-4">{{ event.description }}</p>
-                <div class="flex justify-between items-center">
-                    <span class="text-lg font-bold text-primary">৳{{ event.fee }}</span>
-                    <button onclick="openModal('{{ event.id }}')" class="bg-secondary text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors">View Rules</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal -->
-        <div id="modal-{{ event.id }}" class="fixed inset-0 z-50 hidden flex items-center justify-center">
-            <div class="modal-overlay absolute inset-0 bg-gray-800 bg-opacity-75" onclick="closeModal('{{ event.id }}')"></div>
-            <div class="modal-container bg-white rounded-lg shadow-2xl max-w-2xl w-full m-4 transform scale-95">
-                <div class="p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-3xl font-bold text-gray-800">{{ event.name }} - Rules</h2>
-                        <div>
-                            {% if event.rules_file %}
-                            <a href="{{ event.rules_file.url }}" download class="text-gray-500 hover:text-gray-800 mr-4"><i class="fas fa-download"></i></a>
-                            {% endif %}
-                            <button onclick="toggleFullscreen('{{ event.id }}')" class="text-gray-500 hover:text-gray-800 mr-4"><i class="fas fa-expand"></i></button>
-                            <button onclick="closeModal('{{ event.id }}')" class="text-gray-500 hover:text-gray-800 text-3xl font-bold">&times;</button>
-                        </div>
+        <div class="event-card animate-in" style="animation-delay: {{ forloop.counter0|mul:"0.1" }}s;" onclick="openRulesModal('{{ event.id }}')">
+            <div class="event-image-container">
+                {% if event.event_image %}
+                    <img src="{{ event.event_image.url }}" alt="{{ event.name }}" class="event-image">
+                {% else %}
+                    <div class="event-default-image">
+                        <i class="fas fa-{% if event.event_type == 'TEAM' %}users{% else %}user{% endif %}"></i>
                     </div>
-                    <div class="prose max-w-none max-h-96 overflow-y-auto">
-                        {% if event.rules_type == 'TEXT' %}
-                            <p>{{ event.rules_text|linebreaks }}</p>
-                        {% elif event.rules_type == 'IMAGE' %}
-                            <img src="{{ event.rules_file.url }}" alt="Rules for {{ event.name }}" class="w-full rounded-md">
-                        {% elif event.rules_type == 'PDF' %}
-                            <iframe src="{{ event.rules_file.url }}" class="w-full h-96 rounded-md" frameborder="0"></iframe>
-                        {% endif %}
+                {% endif %}
+                <span class="event-type-badge {% if event.event_type == 'INDIVIDUAL' %}badge-individual{% else %}badge-team{% endif %}">
+                    {% if event.event_type == 'INDIVIDUAL' %}
+                        Individual
+                    {% else %}
+                        Team{% if event.max_team_size %} ({{ event.max_team_size }}){% endif %}
+                    {% endif %}
+                </span>
+            </div>
+            <div class="event-content">
+                <h3 class="event-title">{{ event.name }}</h3>
+                <p class="event-description">{{ event.description|truncatechars:150 }}</p>
+                <div class="event-meta">
+                    <div class="meta-item">
+                        <i class="fas fa-{% if event.event_type == 'INDIVIDUAL' %}user{% else %}users{% endif %}"></i>
+                        <span>{{ event.get_event_type_display }}</span>
+                    </div>
+                    {% if event.max_participants %}
+                    <div class="meta-item">
+                        <i class="fas fa-users"></i>
+                        <span>Max: {{ event.max_participants }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="meta-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>{{ event.created_at|date:"M j" }}</span>
+                    </div>
+                </div>
+                <div class="event-footer">
+                    <span class="event-fee">৳{{ event.fee|floatformat:0 }}</span>
+                    <div class="view-rules-btn">
+                        <i class="fas fa-book-open"></i>
+                        <span>View Rules</span>
                     </div>
                 </div>
             </div>
         </div>
         {% empty %}
-        <div class="col-span-full text-center py-12">
-            <div class="bg-white rounded-xl shadow-md p-8 sm:p-12">
-                <div class="bg-gray-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <i class="fas fa-calendar-times text-3xl text-gray-400"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-gray-700 mb-2">No Events Available</h3>
-                <p class="text-gray-500 mb-6">Events will be announced soon. Stay tuned!</p>
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-calendar-times"></i>
             </div>
+            <h3 class="empty-title">No Events Available</h3>
+            <p class="empty-description">
+                Events will be announced soon. Stay tuned for exciting competitions and challenges!
+            </p>
         </div>
         {% endfor %}
     </div>
+</main>
+
+<!-- Advanced Modal System -->
+<div class="modal-overlay" id="rulesModal">
+    <div class="modal-container">
+        <div class="modal-header">
+            <div>
+                <h2 class="modal-title" id="modalTitle">Event Rules</h2>
+                <p class="modal-subtitle" id="modalSubtitle">Competition Guidelines</p>
+            </div>
+            <button class="modal-close" onclick="closeRulesModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="modalContent">
+            <!-- Content will be dynamically loaded here -->
+        </div>
+    </div>
 </div>
 
+<button class="scroll-top-btn" id="scrollTopBtn" onclick="scrollToTop()">
+    <i class="fas fa-chevron-up"></i>
+</button>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
 <script>
-    let activeModalId = null;
+    // Event data from Django backend
+    const eventsData = {
+        {% for event in events %}
+        '{{ event.id }}': {
+            title: '{{ event.name|escapejs }}',
+            subtitle: '{{ event.get_event_type_display|escapejs }} Event',
+            type: '{{ event.rules_type|lower }}',
+            content: {% if event.rules_type == 'TEXT' %}'{{ event.rules_text|escapejs }}'{% elif event.rules_type == 'IMAGE' %}'{{ event.rules_file.url|default:"" }}'{% elif event.rules_type == 'PDF' %}'{{ event.rules_file.url|default:"" }}'{% endif %}
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    };
 
-    function openModal(eventId) {
-        activeModalId = eventId;
-        const modal = document.getElementById('modal-' + eventId);
-        modal.classList.remove('hidden');
-        document.body.classList.add('overflow-hidden');
-        // Animate modal in
-        setTimeout(() => {
-            modal.querySelector('.modal-overlay').classList.remove('opacity-0');
-            modal.querySelector('.modal-container').classList.remove('scale-95');
-        }, 10);
-    }
-
-    function closeModal(eventId) {
-        activeModalId = null;
-        const modal = document.getElementById('modal-' + eventId);
-        // Animate modal out
-        modal.querySelector('.modal-overlay').classList.add('opacity-0');
-        modal.querySelector('.modal-container').classList.add('scale-95');
-        setTimeout(() => {
-            modal.classList.add('hidden');
-            document.body.classList.remove('overflow-hidden');
-        }, 300);
-    }
-
-    function toggleFullscreen(eventId) {
-        const modalContent = document.getElementById('modal-' + eventId).querySelector('.prose').innerHTML;
-        const fullscreenContent = document.getElementById('fullscreen-content').querySelector('.scrollable-content');
-        const fullscreenOverlay = document.getElementById('fullscreen-overlay');
-
-        fullscreenContent.innerHTML = modalContent;
-        fullscreenOverlay.classList.remove('hidden');
-    }
-
-    function closeFullscreen() {
-        const fullscreenOverlay = document.getElementById('fullscreen-overlay');
-        const fullscreenContent = document.getElementById('fullscreen-content').querySelector('.scrollable-content');
-
-        fullscreenOverlay.classList.add('hidden');
-        fullscreenContent.innerHTML = '';
-    }
-
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape') {
-            if (activeModalId) {
-                closeModal(activeModalId);
-            }
-            if (!document.getElementById('fullscreen-overlay').classList.contains('hidden')) {
-                closeFullscreen();
-            }
+    // Modal functionality
+    function openRulesModal(eventId) {
+        const modal = document.getElementById('rulesModal');
+        const title = document.getElementById('modalTitle');
+        const subtitle = document.getElementById('modalSubtitle');
+        const content = document.getElementById('modalContent');
+        
+        const eventData = eventsData[eventId];
+        
+        if (eventData) {
+            title.textContent = eventData.title;
+            subtitle.textContent = eventData.subtitle;
+            
+            // Show loading spinner
+            content.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: center; padding: 4rem;">
+                    <div class="loading-spinner"></div>
+                    <span style="margin-left: 1rem; color: var(--text-secondary);">Loading rules...</span>
+                </div>
+            `;
+            
+            // Show modal first
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            
+            // Simulate loading delay for better UX
+            setTimeout(() => {
+                if (eventData.type === 'text') {
+                    content.innerHTML = `<div class="rules-text">${eventData.content}</div>`;
+                } else if (eventData.type === 'image') {
+                    if (eventData.content) {
+                        content.innerHTML = `<img src="${eventData.content}" alt="Rules for ${eventData.title}" class="rules-image" onerror="handleImageError(this)">`;
+                    } else {
+                        content.innerHTML = `<div class="rules-text">No rules image available for this event.</div>`;
+                    }
+                } else if (eventData.type === 'pdf') {
+                    if (eventData.content) {
+                        content.innerHTML = `<iframe src="${eventData.content}" class="pdf-container"></iframe>`;
+                    } else {
+                        content.innerHTML = `<div class="rules-text">No rules document available for this event.</div>`;
+                    }
+                } else {
+                    content.innerHTML = `<div class="rules-text">Rules will be updated soon.</div>`;
+                }
+            }, 500);
         }
+    }
+
+    function closeRulesModal() {
+        const modal = document.getElementById('rulesModal');
+        modal.classList.remove('active');
+        document.body.style.overflow = 'auto';
+    }
+
+    function handleImageError(img) {
+        img.parentElement.innerHTML = `<div class="rules-text">Rules image could not be loaded.</div>`;
+    }
+
+    // Close modal on escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeRulesModal();
+        }
+    });
+
+    // Close modal on overlay click
+    document.getElementById('rulesModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeRulesModal();
+        }
+    });
+
+    // Prevent modal content clicks from closing modal
+    document.querySelector('.modal-container').addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+
+    // Animation on scroll
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.animationPlayState = 'running';
+            }
+        });
+    }, observerOptions);
+
+    // Observe all animate-in elements
+    document.querySelectorAll('.animate-in').forEach(el => {
+        observer.observe(el);
+    });
+
+    // Scroll to top functionality
+    function scrollToTop() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    const scrollTopBtn = document.getElementById('scrollTopBtn');
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 300) {
+            scrollTopBtn.classList.add('visible');
+        } else {
+            scrollTopBtn.classList.remove('visible');
+        }
+    });
+
+    // Add hover effects and interactions
+    document.querySelectorAll('.event-card').forEach((card, index) => {
+        // Stagger animation delays
+        card.style.animationDelay = `${index * 0.1}s`;
+        
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-8px)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+
+    // Add particle effect on card hover for better interactivity
+    function createParticle(x, y) {
+        const particle = document.createElement('div');
+        particle.style.cssText = `
+            position: fixed;
+            width: 4px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1000;
+            left: ${x}px;
+            top: ${y}px;
+            opacity: 1;
+            transform: scale(1);
+            transition: all 1s ease-out;
+        `;
+        
+        document.body.appendChild(particle);
+        
+        // Animate particle
+        requestAnimationFrame(() => {
+            particle.style.transform = `translate(${Math.random() * 100 - 50}px, ${Math.random() * 100 - 50}px) scale(0)`;
+            particle.style.opacity = '0';
+        });
+        
+        setTimeout(() => particle.remove(), 1000);
+    }
+
+    // Add particles on card hover (subtle effect)
+    document.querySelectorAll('.event-card').forEach(card => {
+        card.addEventListener('mousemove', function(e) {
+            if (Math.random() < 0.05) { // 5% chance to create particle
+                createParticle(e.clientX, e.clientY);
+            }
+        });
+    });
+
+    // Add smooth reveal animation for elements
+    const revealElements = document.querySelectorAll('.animate-in');
+    revealElements.forEach((el, index) => {
+        el.style.animationDelay = `${index * 0.1}s`;
     });
 </script>
 {% endblock %}

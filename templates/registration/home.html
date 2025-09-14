@@ -14,6 +14,8 @@
     .hero-section {
         position: relative;
         overflow: hidden;
+        display: flex;
+        align-items: center;
     }
 
     .hero-section.has-gradient {
@@ -27,6 +29,7 @@
         margin-left: -50vw;
         margin-right: -50vw;
         border-radius: 0;
+        min-height: calc(100vh - 4rem);
     }
 
     #bg-video {
@@ -117,6 +120,19 @@
         }
     }
 
+    .social-glow {
+        animation: social-glow 2s infinite alternate;
+    }
+
+    @keyframes social-glow {
+        from {
+            filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.5));
+        }
+        to {
+            filter: drop-shadow(0 0 15px rgba(59, 130, 246, 1));
+        }
+    }
+
     .card-glow::before {
         content: '';
         position: absolute;
@@ -138,10 +154,12 @@
 </style>
 {% endblock %}
 
+{% block main_classes %}{% endblock %}
+
 {% block content %}
 <div class="relative">
     <!-- Hero Section -->
-    <div class="hero-section text-white mb-12 shadow-2xl 
+    <div class="hero-section text-white shadow-2xl 
         {% if background_video or slideshow_images %}full-width-hero{% else %}has-gradient rounded-2xl{% endif %}">
         {% if background_video %}
             <video autoplay muted loop id="bg-video">
@@ -158,7 +176,7 @@
         {% if background_video or slideshow_images %}
             <div class="hero-overlay"></div>
         {% endif %}
-        <div class="hero-content px-4 sm:px-8 py-12 md:py-24">
+        <div class="hero-content w-full px-4 sm:px-8 h-full flex flex-col justify-center">
             <div class="max-w-4xl mx-auto text-center">
                 <h1 class="tech-title text-3xl sm:text-4xl md:text-6xl font-bold mb-6">
                     SJIS 1ST INTERSCHOOL TECH CARNIVAL 2025
@@ -213,20 +231,20 @@
                     <span class="hidden sm:inline">Register Now - Start Your Journey!</span>
                     <span class="sm:hidden">Register Now!</span>
                 </a>
+                {% if social_media_profiles %}
+                <div class="mt-8 flex justify-center space-x-6">
+                    {% for profile in social_media_profiles %}
+                        <a href="{{ profile.url }}" target="_blank" class="text-white hover:text-gray-300 transition-colors social-glow">
+                            <i class="fab fa-{{ profile.platform|lower }} fa-2x"></i>
+                        </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
 
-    <!-- Social Media Links -->
-    {% if social_media_profiles %}
-    <div class="flex justify-center space-x-6 mb-12">
-        {% for profile in social_media_profiles %}
-            <a href="{{ profile.url }}" target="_blank" class="text-gray-500 hover:text-gray-800 transition-colors">
-                <i class="fab fa-{{ profile.platform|lower }} fa-2x"></i>
-            </a>
-        {% endfor %}
-    </div>
-    {% endif %}
+
 
     <!-- Events Showcase -->
     <div id="events" class="mb-12">

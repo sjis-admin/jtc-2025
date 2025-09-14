@@ -1,4 +1,4 @@
-# registration/urls.py - Updated with enhanced failure handling
+# registration/urls.py - Updated with enhanced events page
 from django.urls import path, re_path
 from . import views
 from . import admin_views
@@ -11,7 +11,12 @@ urlpatterns = [
     path('calculate-total/', views.calculate_total, name='calculate_total'),
     path('events/', views.events_page, name='events_page'),
     path('about-us/', views.about_us, name='about_us'),
+    path('valorant/', views.valorant_page, name='valorant_page'),
     path('join-us/', views.join_us, name='join_us'),
+    
+    # Enhanced Events API endpoints
+    path('api/events/<int:event_id>/rules/', views.event_rules_api, name='event_rules_api'),
+    path('api/events/<int:event_id>/details/', views.event_details_api, name='event_details_api'),
     
     # Payment URLs - Enhanced with failure handling
     path('payment/<int:student_id>/', views.payment_gateway, name='payment_gateway'),

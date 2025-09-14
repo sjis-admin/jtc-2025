@@ -87,3 +87,46 @@ def add(value, arg):
         return float(value) + float(arg)
     except (ValueError, TypeError):
         return 0
+
+# Enhanced helper function for event icon selection
+def get_event_icon(event_type, event_name=None):
+    """
+    Return appropriate FontAwesome icon based on event type and name
+    """
+    event_icons = {
+        'programming': 'code',
+        'hackathon': 'laptop-code',
+        'web': 'paint-brush',
+        'design': 'palette',
+        'ai': 'robot',
+        'machine learning': 'brain',
+        'data science': 'chart-line',
+        'mobile': 'mobile-alt',
+        'game': 'gamepad',
+        'cybersecurity': 'shield-alt',
+        'blockchain': 'link',
+        'iot': 'microchip',
+        'default_individual': 'user',
+        'default_team': 'users'
+    }
+    
+    if event_name:
+        event_name_lower = event_name.lower()
+        for keyword, icon in event_icons.items():
+            if keyword in event_name_lower:
+                return icon
+    
+    # Fallback based on event type
+    if event_type == 'TEAM':
+        return event_icons['default_team']
+    else:
+        return event_icons['default_individual']
+
+# Template filter for better event data handling
+@register.filter
+def event_icon(event):
+    """
+    Template filter to get appropriate icon for an event
+    Usage: {{ event|event_icon }}
+    """
+    return get_event_icon(event.event_type, event.name)

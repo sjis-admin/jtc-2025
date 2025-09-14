@@ -27,7 +27,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_htmx',
-    # 'django_ratelimit',  
+
     'registration.apps.RegistrationConfig',
     'anymail',
 ]
@@ -59,6 +59,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'registration.context_processors.site_logo',
             ],
         },
     },
@@ -272,9 +273,7 @@ LOGGING = {
 # Create logs directory if it doesn't exist
 os.makedirs(BASE_DIR / 'logs', exist_ok=True)
 
-# Rate Limiting Configuration
-# RATELIMIT_ENABLE = True
-# RATELIMIT_USE_CACHE = 'default'
+
 
 # File Upload Security
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB

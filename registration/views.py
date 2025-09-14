@@ -11,7 +11,7 @@ from django.utils.html import strip_tags
 from django.utils import timezone
 from django.db import transaction
 from django.urls import reverse
-from django_ratelimit.decorators import ratelimit
+
 import requests
 import json
 import logging
@@ -28,11 +28,11 @@ logger = logging.getLogger(__name__)
 from .models import (Student, Event, Payment, Receipt, 
                     StudentEventRegistration, PaymentAttempt, School, 
                     Team, TeamMember, Countdown, HomePageAsset, SocialMediaProfile,
-                    TeamMemberProfile, PastEventImage)
+                    TeamMemberProfile, PastEventImage, ValorantBackgroundVideo)
 from .forms import StudentRegistrationForm
 from .sslcommerz import SSLCOMMERZ
 
-@ratelimit(key='ip', rate='10/m', method='GET')
+
 def home(request):
     """
     Home page with event listing and security monitoring
@@ -78,7 +78,6 @@ def home(request):
         messages.error(request, 'An error occurred while loading the page.')
         return render(request, 'registration/home.html', {'events': [], 'stats': {}, 'countdown': None})
 
-@ratelimit(key='ip', rate='10/m', method=['GET', 'POST'])
 def register(request):
     """
     Student registration with comprehensive security measures
@@ -186,7 +185,7 @@ def register(request):
     return render(request, 'registration/register.html', {'form': form})
 
 @require_GET
-@ratelimit(key='ip', rate='30/m', method='GET')
+
 def get_group(request):
     """
     HTMX endpoint to get group based on grade
@@ -204,7 +203,6 @@ def get_group(request):
     return HttpResponse('')
 
 @require_POST
-@ratelimit(key='ip', rate='30/m', method='POST')
 def calculate_total(request):
     """
     HTMX endpoint to calculate total amount with security validation
@@ -243,7 +241,6 @@ def calculate_total(request):
         logger.error(f'Error calculating total: {e}')
         return HttpResponse('<span class="text-red-500">Error calculating total</span>')
 
-@ratelimit(key='ip', rate='10/m', method=['GET', 'POST'])
 def payment_gateway(request, student_id):
     """
     SSL Commerz payment gateway integration with enhanced security
@@ -350,7 +347,6 @@ def payment_gateway(request, student_id):
         return redirect('register')
 
 @csrf_exempt
-@ratelimit(key='ip', rate='10/m', method=['GET', 'POST'])
 def payment_success(request, student_id):
     """
     Handle successful payment with comprehensive verification
@@ -566,7 +562,6 @@ def payment_success(request, student_id):
         return redirect('payment_fail', student_id=student_id)
 
 @csrf_exempt
-@ratelimit(key='ip', rate='10/m', method=['GET', 'POST'])
 def payment_fail(request, student_id):
     """
     Handle failed payment with detailed error information
@@ -657,7 +652,7 @@ def payment_fail(request, student_id):
         return redirect('home')
 
 @csrf_exempt
-@ratelimit(key='ip', rate='10/m', method=['GET', 'POST'])
+
 def payment_cancel(request, student_id):
     """
     Handle cancelled payment with user guidance
@@ -822,7 +817,7 @@ def cleanup_expired_payments():
 
 @csrf_exempt
 @require_POST
-@ratelimit(key='ip', rate='30/m', method='POST')
+
 def payment_ipn(request):
     """
     Handle SSL Commerz IPN (Instant Payment Notification) with enhanced security.
@@ -1025,13 +1020,175 @@ def verify_receipt(request, receipt_number):
 
 def events_page(request):
     """
-    Dedicated page to list all events.
+    Enhanced events page with modern UI and comprehensive event details
     """
-    events = Event.objects.filter(is_active=True).order_by('-created_at')
-    context = {
-        'events': events,
-    }
-    return render(request, 'registration/events_page.html', context)
+    ip_address = get_client_ip(request)
+    user_agent = request.META.get('HTTP_USER_AGENT', '')
+    
+    try:
+        # Get active events with related data
+        events = Event.objects.filter(is_active=True).order_by('-created_at')
+        
+        # Prepare event data for frontend
+        events_data = []
+        for event in events:
+            event_data = {
+                'id': event.id,
+                'name': event.name,
+                'description': event.description,
+                'fee': str(event.fee),
+                'event_type': event.event_type,
+                'event_type_display': event.get_event_type_display(),
+                'max_team_size': event.max_team_size,
+                'max_participants': event.max_participants,
+                'created_at': event.created_at,
+                'rules_type': event.rules_type,
+                'rules_text': event.rules_text,
+                'rules_file_url': event.rules_file.url if event.rules_file else '',
+                'event_image_url': event.event_image.url if event.event_image else '',
+                'registration_count': event.get_registration_count(),
+                'is_registration_full': event.is_registration_full(),
+            }
+            events_data.append(event_data)
+        
+        # Log page access for analytics
+        logger.info(f'Events page accessed from {ip_address} - {len(events_data)} events displayed')
+        
+        context = {
+            'events': events,
+            'events_data': events_data,
+            'events_count': len(events_data),
+        }
+        
+        return render(request, 'registration/events_page.html', context)
+        
+    except Exception as e:
+        logger.error(f'Error in events_page view: {e}')
+        messages.error(request, 'An error occurred while loading events. Please try again.')
+        
+        # Return empty context on error
+        context = {
+            'events': [],
+            'events_data': [],
+            'events_count': 0,
+        }
+        return render(request, 'registration/events_page.html', context)
+
+def event_rules_api(request, event_id):
+    """
+    API endpoint to fetch event rules dynamically
+    Used for AJAX loading of rules content
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    try:
+        event = get_object_or_404(
+            Event.objects.filter(is_active=True), 
+            id=event_id
+        )
+        
+        # Prepare rules data based on type
+        rules_data = {
+            'id': event.id,
+            'name': event.name,
+            'rules_type': event.rules_type,
+            'event_type': event.get_event_type_display(),
+        }
+        
+        if event.rules_type == 'TEXT':
+            rules_data['content'] = event.rules_text or 'No rules specified for this event.'
+        elif event.rules_type == 'IMAGE':
+            rules_data['content'] = event.rules_file.url if event.rules_file else ''
+        elif event.rules_type == 'PDF':
+            rules_data['content'] = event.rules_file.url if event.rules_file else ''
+        else:
+            rules_data['content'] = 'Rules will be updated soon.'
+        
+        # Log API access
+        logger.info(f'Event rules API accessed for event {event_id} from {get_client_ip(request)}')
+        
+        return JsonResponse({
+            'success': True,
+            'data': rules_data
+        })
+        
+    except Event.DoesNotExist:
+        logger.warning(f'Event rules API called for non-existent event: {event_id}')
+        return JsonResponse({
+            'success': False,
+            'error': 'Event not found'
+        }, status=404)
+    except Exception as e:
+        logger.error(f'Error in event_rules_api: {e}')
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred while fetching event rules'
+        }, status=500)
+
+def event_details_api(request, event_id):
+    """
+    API endpoint to fetch detailed event information
+    Can be used for enhanced modals or event detail pages
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    try:
+        event = get_object_or_404(
+            Event.objects.select_related().prefetch_related('studenteventregistration_set'), 
+            id=event_id, 
+            is_active=True
+        )
+        
+        # Get registration statistics
+        registration_count = event.get_registration_count()
+        
+        # Calculate registration progress percentage
+        registration_progress = 0
+        if event.max_participants:
+            registration_progress = min((registration_count / event.max_participants) * 100, 100)
+        
+        event_data = {
+            'id': event.id,
+            'name': event.name,
+            'description': event.description,
+            'fee': str(event.fee),
+            'event_type': event.event_type,
+            'event_type_display': event.get_event_type_display(),
+            'max_team_size': event.max_team_size,
+            'max_participants': event.max_participants,
+            'registration_count': registration_count,
+            'registration_progress': registration_progress,
+            'is_registration_full': event.is_registration_full(),
+            'created_at': event.created_at.isoformat(),
+            'updated_at': event.updated_at.isoformat(),
+            'event_image_url': event.event_image.url if event.event_image else '',
+            'rules_type': event.rules_type,
+            'has_rules': bool(event.rules_text or event.rules_file),
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'data': event_data
+        })
+        
+    except Event.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Event not found'
+        }, status=404)
+    except Exception as e:
+        logger.error(f'Error in event_details_api: {e}')
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred while fetching event details'
+        }, status=500)
+
+
+
+
+
 
 def about_us(request):
     """
@@ -1056,4 +1213,11 @@ def join_us(request):
         'social_media_profiles': social_media_profiles,
     }
     return render(request, 'registration/join_us.html', context)
+
+def valorant_page(request):
+    video = ValorantBackgroundVideo.objects.filter(is_active=True).first()
+    context = {
+        'video': video,
+    }
+    return render(request, 'registration/valorant.html', context)
 
