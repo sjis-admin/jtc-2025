@@ -28,7 +28,7 @@ node_modules/
 .dist/
 
 # Production-only configs
-josephite_tech_club/settings.py
-*.backup*
-gunicorn.conf.py
-start_gunicorn.sh
+# josephite_tech_club/settings.py
+# *.backup*
+# gunicorn.conf.py
+# start_gunicorn.sh
