@@ -481,7 +481,7 @@ def export_students_csv():
             student.email,
             student.mobile_number,
             student.school_college,
-            student.get_grade_display(),
+            student.grade.name if student.grade else '',
             student.get_group_display(),
             student.section or '',
             student.roll,
@@ -756,61 +756,274 @@ def detect_suspicious_activity(ip_address, user_agent, student_data=None):
 
 def export_detailed_report_csv():
     """
-    Export a detailed CSV report of all paid students.
+    Export a detailed CSV report of all paid students with complete event information.
     """
-    from .models import Student, Team
+    from .models import Student, StudentEventRegistration
     import csv
     from io import StringIO
 
     output = StringIO()
     writer = csv.writer(output)
 
-    # Header
+    # Enhanced Header with more comprehensive information
     writer.writerow([
         'Student Name', 'Registration ID', 'Email', 'Mobile Number', 'School/College',
-        'Grade', 'Group', 'Roll', 'Amount Paid', 'Payment Method',
-        'Transaction ID', 'Payment Date', 'Registered Events', 'Number of Events',
-        'Team Name', 'Team Members'
+        'Grade', 'Group', 'Section', 'Roll', 'Amount Paid', 'Payment Method',
+        'Transaction ID', 'Payment Date', 'Registered Events', 'Event Details',
+        'Number of Events', 'Individual Events', 'Team Events', 'Team Details'
     ])
 
-    # Data
-    students = Student.objects.filter(is_paid=True, is_deleted=False).prefetch_related('payments', 'events', 'studenteventregistration_set__team__members').order_by('-created_at')
+    # Data - Get all paid students with proper relationships
+    students = Student.objects.filter(
+        is_paid=True, 
+        is_deleted=False
+    ).prefetch_related(
+        'payments', 
+        'studenteventregistration_set__event_option__event',
+        'studenteventregistration_set__team__members'
+    ).order_by('-created_at')
 
     for student in students:
+        # Get payment information
         payment = student.payments.filter(status='SUCCESS').first()
-        event_names = ", ".join([event.name for event in student.events.all()])
-        num_events = student.events.count()
-
-        team_names = []
-        team_members_list = []
-        team_registrations = student.studenteventregistration_set.filter(team__isnull=False).select_related('team').prefetch_related('team__members')
         
-        for team_reg in team_registrations:
-            team_names.append(team_reg.team.name)
-            members = ", ".join([member.name for member in team_reg.team.members.all()])
-            if members:
-                team_members_list.append(members)
+        # Get all event registrations for this student
+        all_registrations = student.studenteventregistration_set.all()
+        
+        # Separate individual and team events
+        individual_events = []
+        team_events = []
+        event_details_list = []
+        team_details_list = []
+        
+        for registration in all_registrations:
+            event_option = registration.event_option
+            event_name = event_option.event.name
+            option_name = event_option.name
+            fee = event_option.fee
+            
+            # Create detailed event info
+            event_detail = f"{event_name} ({option_name}) - ৳{fee}"
+            event_details_list.append(event_detail)
+            
+            if event_option.event_type == 'INDIVIDUAL':
+                individual_events.append(f"{event_name} ({option_name})")
+            elif event_option.event_type == 'TEAM':
+                team_events.append(f"{event_name} ({option_name})")
+                
+                # Get team details if exists
+                if hasattr(registration, 'team') and registration.team:
+                    team = registration.team
+                    team_name = team.name
+                    
+                    member_details = []
+                    for member in team.members.order_by('-is_leader', 'id'):
+                        detail = member.name
+                        if member.is_leader:
+                            detail += " (Leader)"
+                        member_details.append(detail)
+                    
+                    if member_details:
+                        team_details_list.append(
+                            f"{event_name} - Team: {team_name} | Members: [{', '.join(member_details)}]"
+                        )
 
-        team_name_str = ", ".join(team_names)
-        team_members_str = "; ".join(team_members_list)
+        # Prepare final strings
+        all_event_names = ", ".join([reg.event_option.event.name for reg in all_registrations])
+        event_details_str = " | ".join(event_details_list)
+        individual_events_str = ", ".join(individual_events) if individual_events else "None"
+        team_events_str = ", ".join(team_events) if team_events else "None"
+        team_details_str = " | ".join(team_details_list) if team_details_list else "N/A"
+        num_events = all_registrations.count()
 
+        # Write the row
         writer.writerow([
             student.name,
             student.registration_id,
             student.email,
             student.mobile_number,
-            student.school_college.name if student.school_college else '',
-            student.get_grade_display(),
+            student.school_college.name if student.school_college else student.other_school or 'N/A',
+            student.grade.name if student.grade else 'N/A',
             student.get_group_display(),
+            student.section or 'N/A',
             student.roll,
             payment.amount if payment else 'N/A',
             payment.get_payment_method_display() if payment and payment.payment_method else 'N/A',
             payment.transaction_id if payment else 'N/A',
             payment.completed_at.strftime('%Y-%m-%d %H:%M:%S') if payment and payment.completed_at else 'N/A',
-            event_names,
+            all_event_names,  # All registered events
+            event_details_str,  # Detailed event info with fees
             num_events,
-            team_name_str,
-            team_members_str
+            individual_events_str,  # Only individual events
+            team_events_str,  # Only team events
+            team_details_str  # Complete team details
+        ])
+
+    return output.getvalue()
+
+
+def export_comprehensive_report_csv():
+    """
+    Export a comprehensive CSV report including unpaid students for complete carnival overview.
+    """
+    from .models import Student, Payment, Event, EventOption, StudentEventRegistration
+    import csv
+    from io import StringIO
+    from django.db.models import Count, Sum
+
+    output = StringIO()
+    writer = csv.writer(output)
+
+    # Write summary statistics first
+    writer.writerow(['=== CARNIVAL OVERVIEW REPORT ==='])
+    writer.writerow([])
+    
+    # Overall statistics
+    total_students = Student.objects.filter(is_deleted=False).count()
+    paid_students = Student.objects.filter(is_deleted=False, is_paid=True).count()
+    pending_students = total_students - paid_students
+    
+    total_revenue = Payment.objects.filter(status='SUCCESS').aggregate(
+        Sum('amount')
+    )['amount__sum'] or 0
+    
+    writer.writerow(['OVERALL STATISTICS'])
+    writer.writerow(['Total Registrations', total_students])
+    writer.writerow(['Paid Registrations', paid_students])
+    writer.writerow(['Pending Payments', pending_students])
+    writer.writerow(['Total Revenue', f'৳{total_revenue}'])
+    writer.writerow(['Collection Rate', f'{(paid_students/total_students*100):.1f}%' if total_students > 0 else '0%'])
+    writer.writerow([])
+    
+    # Event-wise statistics - FIXED
+    writer.writerow(['EVENT-WISE BREAKDOWN'])
+    writer.writerow(['Event Name', 'Total Registrations', 'Paid Registrations', 'Revenue'])
+    
+    events = Event.objects.filter(is_active=True)
+    for event in events:
+        # Count registrations through the correct relationship
+        total_regs = StudentEventRegistration.objects.filter(
+            event_option__event=event
+        ).count()
+        
+        paid_regs = StudentEventRegistration.objects.filter(
+            event_option__event=event,
+            student__is_paid=True, 
+            student__is_deleted=False
+        ).count()
+        
+        # Calculate revenue for this event - FIXED
+        event_revenue = 0
+        for option in event.options.all():
+            paid_registrations = StudentEventRegistration.objects.filter(
+                event_option=option,
+                student__is_paid=True,
+                student__is_deleted=False
+            )
+            event_revenue += sum([option.fee for _ in paid_registrations])
+        
+        writer.writerow([
+            event.name,
+            total_regs,
+            paid_regs,
+            f'৳{event_revenue}'
+        ])
+    
+    writer.writerow([])
+    writer.writerow(['=== DETAILED STUDENT RECORDS ==='])
+    writer.writerow([])
+    
+    # Detailed student records header
+    writer.writerow([
+        'Status', 'Student Name', 'Registration ID', 'Email', 'Mobile Number', 
+        'School/College', 'Grade', 'Group', 'Section', 'Roll', 
+        'Amount Paid', 'Payment Status', 'Payment Method', 'Transaction ID', 
+        'Payment Date', 'All Events', 'Event Details', 'Individual Events', 
+        'Team Events', 'Team Details', 'Registration Date'
+    ])
+
+    # Get all students (both paid and unpaid)
+    students = Student.objects.filter(is_deleted=False).prefetch_related(
+        'payments', 
+        'studenteventregistration_set__event_option__event',
+        'studenteventregistration_set__team__members'
+    ).order_by('-created_at')
+
+    for student in students:
+        # Determine status
+        status = "PAID" if student.is_paid else "PENDING"
+        
+        # Get payment information
+        payment = student.payments.filter(status='SUCCESS').first()
+        
+        # Get all event registrations
+        all_registrations = student.studenteventregistration_set.all()
+        
+        # Process events (same logic as before)
+        individual_events = []
+        team_events = []
+        event_details_list = []
+        team_details_list = []
+        
+        for registration in all_registrations:
+            event_option = registration.event_option
+            event_name = event_option.event.name
+            option_name = event_option.name
+            fee = event_option.fee
+            
+            event_detail = f"{event_name} ({option_name}) - ৳{fee}"
+            event_details_list.append(event_detail)
+            
+            if event_option.event_type == 'INDIVIDUAL':
+                individual_events.append(f"{event_name} ({option_name})")
+            elif event_option.event_type == 'TEAM':
+                team_events.append(f"{event_name} ({option_name})")
+                
+                if hasattr(registration, 'team') and registration.team:
+                    team = registration.team
+                    team_name = team.name
+                    
+                    member_details = []
+                    for member in team.members.order_by('-is_leader', 'id'):
+                        detail = member.name
+                        if member.is_leader:
+                            detail += " (Leader)"
+                        member_details.append(detail)
+                    
+                    if member_details:
+                        team_details_list.append(
+                            f"{event_name} - Team: {team_name} | Members: [{', '.join(member_details)}]"
+                        )
+
+        # Prepare strings
+        all_event_names = ", ".join([reg.event_option.event.name for reg in all_registrations])
+        event_details_str = " | ".join(event_details_list)
+        individual_events_str = ", ".join(individual_events) if individual_events else "None"
+        team_events_str = ", ".join(team_events) if team_events else "None"
+        team_details_str = " | ".join(team_details_list) if team_details_list else "N/A"
+
+        writer.writerow([
+            status,
+            student.name,
+            student.registration_id,
+            student.email,
+            student.mobile_number,
+            student.school_college.name if student.school_college else student.other_school or 'N/A',
+            student.grade.name if student.grade else 'N/A',
+            student.get_group_display(),
+            student.section or 'N/A',
+            student.roll,
+            payment.amount if payment else student.total_amount,
+            "Completed" if student.is_paid else "Pending",
+            payment.get_payment_method_display() if payment and payment.payment_method else 'N/A',
+            payment.transaction_id if payment else 'N/A',
+            payment.completed_at.strftime('%Y-%m-%d %H:%M:%S') if payment and payment.completed_at else 'N/A',
+            all_event_names,
+            event_details_str,
+            individual_events_str,
+            team_events_str,
+            team_details_str,
+            student.created_at.strftime('%Y-%m-%d %H:%M:%S')
         ])
 
     return output.getvalue()

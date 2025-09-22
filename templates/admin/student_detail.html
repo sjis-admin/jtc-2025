@@ -100,7 +100,7 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="text-sm font-medium text-gray-500 uppercase tracking-wide">Grade</label>
-                            <p class="text-lg font-semibold text-gray-900">{{ student.get_grade_display }}</p>
+                            <p class="text-lg font-semibold text-gray-900">{{ student.grade.name|default:'N/A' }}</p>
                         </div>
                         <div>
                             <label class="text-sm font-medium text-gray-500 uppercase tracking-wide">Group</label>
@@ -133,7 +133,7 @@
                 <div class="space-y-3">
                     <div>
                         <label class="text-sm font-medium text-gray-500 uppercase tracking-wide">Total Amount</label>
-                        <p class="text-2xl font-bold text-gray-900">৳{{ student.total_amount }}</p>
+                        <p class="text-2xl font-bold text-gray-900">৳{{ total_amount_paid }}</p>
                     </div>
                     <div>
                         <label class="text-sm font-medium text-gray-500 uppercase tracking-wide">Payment Status</label>
@@ -262,7 +262,13 @@
                             {% for receipt in receipts %}
                             <tr class="hover:bg-gray-50 transition-colors">
                                 <td class="py-3 font-mono text-sm">{{ receipt.receipt_number }}</td>
-                                <td class="py-3">{{ receipt.generated_by.get_full_name|default:receipt.generated_by.username }}</td>
+                                <td class="py-3">
+                                    {% if receipt.generated_by %}
+                                        {{ receipt.generated_by.get_full_name|default:receipt.generated_by.username }}
+                                    {% else %}
+                                        <span class="text-gray-500 italic">System Generated</span>
+                                    {% endif %}
+                                </td>
                                 <td class="py-3">{{ receipt.generated_at|date:"M j, Y g:i A" }}</td>
                                 <td class="py-3">
                                     {% if receipt.email_sent %}

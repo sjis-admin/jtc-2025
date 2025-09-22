@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
-from django.db.models import Count, Sum, Q
+from django.db.models import Count, Sum, Q, F
 from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
 from django.utils import timezone
@@ -14,6 +14,8 @@ from datetime import datetime, timedelta
 from xhtml2pdf import pisa
 from django.contrib.auth import logout
 from io import BytesIO
+from .views import send_registration_email
+from .forms import BulkSchoolForm
 
 @staff_member_required
 def print_detailed_report_pdf(request):
@@ -39,18 +41,75 @@ def print_detailed_report_pdf(request):
        return HttpResponse('We had some errors <pre>' + html + '</pre>')
     return response
 
-from .models import Student, Event, Payment, AdminLog, Receipt, StudentEventRegistration, School
+from .models import Student, Event, Payment, AdminLog, Receipt, StudentEventRegistration, School, Grade
 from .utils import log_admin_action, get_client_ip, export_detailed_report_csv
 
 @staff_member_required
 def export_detailed_report(request):
-    """Export a detailed CSV report of all paid students."""
-    csv_data = export_detailed_report_csv()
-    response = HttpResponse(csv_data, content_type='text/csv')
-    response['Content-Disposition'] = f'attachment; filename="JTC_Detailed_Registration_Report_{timezone.now().strftime("%Y-%m-%d")}.csv"'
-    return response
-from .views import send_registration_email
-from .forms import BulkSchoolForm
+    """
+    Export detailed CSV report with comprehensive carnival overview
+    """
+    try:
+        from .utils import export_comprehensive_report_csv, log_admin_action, get_client_ip
+        
+        # Generate the CSV content
+        csv_content = export_comprehensive_report_csv()
+        
+        # Create response
+        response = HttpResponse(csv_content, content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="JTC2025_Comprehensive_Report_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+        
+        # Log the export action
+        log_admin_action(
+            user=request.user,
+            action='EXPORT',
+            model_name='Report',
+            description='Exported comprehensive carnival report',
+            ip_address=get_client_ip(request)
+        )
+        
+        logger.info(f'Comprehensive report exported by {request.user.username}')
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f'Error exporting comprehensive report: {e}', exc_info=True)
+        messages.error(request, f'Error generating report: {str(e)}')
+        return redirect('admin_reports')
+
+
+@staff_member_required 
+def export_paid_students_only(request):
+    """
+    Export CSV report with only paid students (original functionality)
+    """
+    try:
+        from .utils import export_detailed_report_csv, log_admin_action, get_client_ip
+        
+        # Generate the CSV content (paid students only)
+        csv_content = export_detailed_report_csv()
+        
+        # Create response
+        response = HttpResponse(csv_content, content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="JTC2025_Paid_Students_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+        
+        # Log the export action
+        log_admin_action(
+            user=request.user,
+            action='EXPORT',
+            model_name='Report',
+            description='Exported paid students report',
+            ip_address=get_client_ip(request)
+        )
+        
+        logger.info(f'Paid students report exported by {request.user.username}')
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f'Error exporting paid students report: {e}', exc_info=True)
+        messages.error(request, f'Error generating report: {str(e)}')
+        return redirect('admin_reports')
 
 @staff_member_required
 def bulk_add_schools(request):
@@ -95,7 +154,7 @@ def dashboard(request):
     total_revenue = Payment.objects.filter(status='SUCCESS').aggregate(Sum('amount'))['amount__sum'] or 0
     
     # Calculate expected revenue (total if all students paid their full amount)
-    expected_revenue = Student.objects.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    expected_revenue = Payment.objects.filter(status='PENDING').aggregate(Sum('amount'))['amount__sum'] or 0
     
     # Recent registrations
     recent_students = Student.objects.order_by('-created_at')[:10]
@@ -104,7 +163,7 @@ def dashboard(request):
     payment_stats = Payment.objects.values('status').annotate(count=Count('id')).order_by('status')
     
     # Event-wise registrations
-    event_stats = StudentEventRegistration.objects.values('event__name').annotate(
+    event_stats = StudentEventRegistration.objects.values(event_name=F('event_option__event__name')).annotate(
         count=Count('id')
     ).order_by('-count')[:5]  # Top 5 events
     
@@ -154,7 +213,9 @@ def dashboard(request):
 @staff_member_required
 def student_list(request):
     """List all students with filtering and search"""
-    students = Student.objects.select_related().prefetch_related('events').order_by('-created_at')
+    students = Student.objects.annotate(
+        total_amount_paid=Sum('payments__amount', filter=Q(payments__status='SUCCESS'))
+    ).select_related('grade', 'school_college').prefetch_related('events').order_by('-created_at')
     
     # Search functionality
     search_query = request.GET.get('search', '')
@@ -196,7 +257,7 @@ def student_list(request):
         'group_filter': group_filter,
         'grade_filter': grade_filter,
         'groups': Student.GROUP_CHOICES,
-        'grades': Student.GRADE_CHOICES,
+        'grades': Grade.objects.all(),
     }
     
     return render(request, 'admin/student_list.html', context)
@@ -207,12 +268,14 @@ def student_detail(request, student_id):
     student = get_object_or_404(Student, id=student_id)
     payments = student.payments.all().order_by('-created_at')
     receipts = student.receipts.all().order_by('-generated_at')
+    total_amount_paid = payments.filter(status='SUCCESS').aggregate(Sum('amount'))['amount__sum'] or 0
     
     context = {
         'student': student,
         'payments': payments,
         'receipts': receipts,
-        'events': student.events.all(),
+        'events': StudentEventRegistration.objects.filter(student=student, payment__status='SUCCESS'),
+        'total_amount_paid': total_amount_paid,
     }
     
     return render(request, 'admin/student_detail.html', context)
@@ -322,9 +385,9 @@ def verify_payment(request, payment_id):
 def event_list(request):
     """List all events with registration statistics"""
     events = Event.objects.annotate(
-        registration_count=Count('student', filter=Q(student__is_paid=True)),
-        total_revenue=Sum('student__payments__amount', 
-                         filter=Q(student__payments__status='SUCCESS'))
+        registration_count=Count('options__studenteventregistration', distinct=True, filter=Q(options__studenteventregistration__student__is_paid=True)),
+        total_revenue=Sum('options__studenteventregistration__student__payments__amount', 
+                         filter=Q(options__studenteventregistration__student__payments__status='SUCCESS'))
     ).order_by('-created_at')
     
     active_events_count = events.filter(is_active=True).count()
@@ -449,12 +512,12 @@ def reports(request):
     
     # Revenue summary
     total_revenue = Payment.objects.filter(status='SUCCESS').aggregate(Sum('amount'))['amount__sum'] or 0
-    pending_revenue = Student.objects.filter(is_paid=False).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    pending_revenue = Payment.objects.filter(status='PENDING').aggregate(Sum('amount'))['amount__sum'] or 0
     
     # Event-wise breakdown
     event_breakdown = Event.objects.annotate(
-        registrations=Count('student'),
-        revenue=Sum('student__payments__amount', filter=Q(student__payments__status='SUCCESS'))
+        registrations=Count('options__studenteventregistration', distinct=True),
+        revenue=Sum('options__studenteventregistration__student__payments__amount', filter=Q(options__studenteventregistration__student__payments__status='SUCCESS'))
     ).order_by('-registrations')
     
     # School-wise breakdown
@@ -532,7 +595,6 @@ def generate_receipt(request, student_id):
         messages.error(request, 'Cannot generate receipt for unpaid registration.')
         return redirect('admin_student_detail', student_id=student.id)
     
-    # Get the successful payment
     payment = student.payments.filter(status='SUCCESS').first()
     if not payment:
         messages.error(request, 'No successful payment found.')
@@ -560,7 +622,7 @@ def generate_receipt(request, student_id):
         'student': student,
         'receipt': receipt,
         'payment': payment,
-        'events': student.events.all(),
+        'events': receipt.payment.studenteventregistration_set.all(),
     }
     
     return render(request, 'admin/receipt_template.html', context)

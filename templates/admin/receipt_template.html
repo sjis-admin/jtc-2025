@@ -1,318 +1,176 @@
-<!-- ====================================================================== -->
-<!-- File 2: templates/admin/receipt_template.html -->
-<!-- ====================================================================== -->
+<!-- templates/admin/receipt_template.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Receipt - {{ receipt.receipt_number }} - Josephite Tech Club</title>
+    <title>Registration Receipt - {{ receipt.receipt_number }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @media print {
-            .no-print { 
-                display: none !important; 
-            }
-            body { 
-                background: white !important;
-                font-size: 10px !important;
-            }
-            .print\:shadow-none { 
-                box-shadow: none !important; 
-            }
-            .print\:rounded-none { 
-                border-radius: 0 !important; 
-            }
-            .print\:p-4 {
-                padding: 0.5rem !important;
-            }
-            .print\:m-0 {
-                margin: 0 !important;
-            }
-            .print\:text-xs {
-                font-size: 9px !important;
-            }
-            .print\:text-sm {
-                font-size: 10px !important;
-            }
-            .print\:text-base {
-                font-size: 11px !important;
-            }
-            .print\:text-lg {
-                font-size: 12px !important;
-            }
-            .print\:text-xl {
-                font-size: 14px !important;
-            }
-            .print\:text-2xl {
-                font-size: 16px !important;
-            }
-            .print\:text-3xl {
-                font-size: 18px !important;
-            }
-            .print\:mb-2 {
-                margin-bottom: 0.25rem !important;
-            }
-            .print\:mb-3 {
-                margin-bottom: 0.5rem !important;
-            }
-            .print\:mb-4 {
-                margin-bottom: 0.75rem !important;
-            }
-            .print\:mb-6 {
-                margin-bottom: 1rem !important;
-            }
-            .print\:mt-4 {
-                margin-top: 0.75rem !important;
-            }
-            .print\:mt-6 {
-                margin-top: 1rem !important;
-            }
-            .print\:py-1 {
-                padding-top: 0.1rem !important;
-                padding-bottom: 0.1rem !important;
-            }
-            .print\:px-2 {
-                padding-left: 0.25rem !important;
-                padding-right: 0.25rem !important;
-            }
-            .print\:gap-4 {
-                gap: 0.5rem !important;
-            }
-            .print\:gap-6 {
-                gap: 1rem !important;
-            }
-            .print\:space-y-1 > * + * {
-                margin-top: 0.1rem !important;
-            }
-            .print\:h-12 {
-                height: 2.5rem !important;
-            }
-            .print\:w-12 {
-                width: 2.5rem !important;
-            }
-            .print\:pt-4 {
-                padding-top: 0.5rem !important;
-            }
-            .print\:border-t {
-                border-top-width: 1px !important;
-            }
-            
-            /* Force single page */
-            html, body {
-                height: auto !important;
-            }
-            
-            @page {
-                size: A4;
-                margin: 0.5in;
-            }
-            
-            /* Prevent page breaks inside important sections */
-            .receipt-section {
-                page-break-inside: avoid;
-            }
-            
-            /* Make table rows smaller and prevent breaks */
-            .events-table {
-                font-size: 9px !important;
-            }
-            .events-table th,
-            .events-table td {
-                padding: 0.1rem 0.25rem !important;
-                line-height: 1.1 !important;
-            }
-            
-            /* Ensure QR code is smaller on print */
-            .qr-code {
-                transform: scale(0.6);
-            }
+            .no-print { display: none !important; }
+            body { -webkit-print-color-adjust: exact; }
+        }
+        .print-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
         }
     </style>
 </head>
-<body>
-    <div class="min-h-screen">
-        <!-- Print Controls - Only visible on screen -->
-        <div class="flex justify-between items-center mb-6 no-print max-w-4xl mx-auto">
-            <a href="javascript:history.back()" class="text-gray-600 hover:text-gray-800 transition-colors">
-                <i class="fas fa-arrow-left mr-2"></i>Back to Student Details
+<body class="bg-gray-100">
+    <div class="print-container p-8">
+        <!-- Print Button -->
+        <div class="no-print mb-6 text-center">
+            <button onclick="window.print()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mr-4">
+                <i class="fas fa-print mr-2"></i>
+                Print Receipt
+            </button>
+            <a href="{% url 'admin_student_detail' student.id %}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to Student
             </a>
-            <div class="flex space-x-3">
-                <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                    <i class="fas fa-print mr-1"></i>Print Receipt
-                </button>
-                <a href="javascript:void(0)" onclick="sendEmail()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                    <i class="fas fa-envelope mr-1"></i>Email to Student
-                </a>
-            </div>
         </div>
 
         <!-- Receipt Content -->
-        <div class="bg-white rounded-lg shadow-xl p-8 print:shadow-none print:rounded-none print:p-4 print:m-0 max-w-4xl mx-auto receipt-container" id="receipt">
+        <div class="bg-white border-2 border-gray-300 rounded-lg p-8">
             <!-- Header -->
-            <div class="text-center mb-8 print:mb-4 receipt-section">
-                <div class="flex justify-center items-center mb-4 print:mb-2">
-                    <i class="fas fa-code text-4xl print:text-2xl text-blue-600 mr-3"></i>
-                    <div>
-                        <h1 class="text-3xl print:text-xl font-bold text-gray-800">Josephite Tech Club</h1>
-                        <p class="text-lg print:text-sm text-gray-600">St. Joseph International School</p>
-                    </div>
-                </div>
-                <div class="w-full h-1 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 rounded"></div>
+            <div class="text-center border-b-2 border-gray-200 pb-6 mb-6">
+                {% if site_logo %}
+                    <img src="{{ site_logo.logo.url }}" alt="Logo" class="mx-auto mb-4 h-16 object-contain">
+                {% endif %}
+                <h1 class="text-3xl font-bold text-gray-800">JOSEPHITE TECH CARNIVAL 2025</h1>
+                <h2 class="text-xl font-semibold text-blue-600 mt-2">REGISTRATION RECEIPT</h2>
+                <p class="text-gray-600 mt-2">St. Joseph International School</p>
             </div>
 
-            <!-- Receipt Info -->
-            <div class="grid grid-cols-2 gap-8 print:gap-4 mb-8 print:mb-4 receipt-section">
-                <div>
-                    <h3 class="text-lg print:text-sm font-semibold text-gray-800 mb-3 print:mb-2 border-b pb-1">Receipt Information</h3>
-                    <div class="space-y-2 print:space-y-1">
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 print:text-xs">Receipt Number:</span>
-                            <span class="font-semibold print:text-xs">{{ receipt.receipt_number }}</span>
+            <!-- Receipt Details -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Left Column -->
+                <div class="space-y-4">
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="font-semibold text-gray-800 mb-3">Receipt Information</h3>
+                        <div class="space-y-2">
+                            <p><strong>Receipt Number:</strong> {{ receipt.receipt_number }}</p>
+                            <p><strong>Date:</strong> {{ receipt.generated_at|date:"F d, Y" }}</p>
+                            <p><strong>Time:</strong> {{ receipt.generated_at|time:"h:i A" }}</p>
+                            <p><strong>Transaction ID:</strong> {{ payment.transaction_id }}</p>
+                            {% if receipt.generated_by %}
+                                <p><strong>Generated by:</strong> {{ receipt.generated_by.get_full_name|default:receipt.generated_by.username }}</p>
+                            {% endif %}
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 print:text-xs">Date Issued:</span>
-                            <span class="font-semibold print:text-xs">{{ receipt.generated_at|date:"M j, Y" }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 print:text-xs">Time:</span>
-                            <span class="font-semibold print:text-xs">{{ receipt.generated_at|date:"g:i A" }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 print:text-xs">Issued By:</span>
-                            <span class="font-semibold print:text-xs">{% if receipt.generated_by %}{{ receipt.generated_by.get_full_name|default:receipt.generated_by.username }}{% else %}System{% endif %}</span>
+                    </div>
+
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h3 class="font-semibold text-blue-800 mb-3">Payment Details</h3>
+                        <div class="space-y-2">
+                            <p><strong>Amount Paid:</strong> ৳{{ payment.amount|floatformat:2 }}</p>
+                            <p><strong>Payment Method:</strong> {{ payment.get_payment_method_display|default:"N/A" }}</p>
+                            <p><strong>Payment Status:</strong> 
+                                <span class="text-green-600 font-semibold">✓ VERIFIED</span>
+                            </p>
+                            <p><strong>Gateway TXN ID:</strong> {{ payment.gateway_txnid|default:"N/A" }}</p>
+                            <p><strong>Completed At:</strong> {{ payment.completed_at|date:"F d, Y \a\\t h:i A"|default:"N/A" }}</p>
                         </div>
                     </div>
                 </div>
+
+                <!-- Right Column -->
+                <div class="space-y-4">
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="font-semibold text-gray-800 mb-3">Student Information</h3>
+                        <div class="space-y-2">
+                            <p><strong>Registration ID:</strong> {{ student.registration_id }}</p>
+                            <p><strong>Name:</strong> {{ student.name }}</p>
+                            <p><strong>Email:</strong> {{ student.email }}</p>
+                            <p><strong>Mobile:</strong> {{ student.mobile_number }}</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <h3 class="font-semibold text-green-800 mb-3">Academic Information</h3>
+                        <div class="space-y-2">
+                            <p><strong>School:</strong> {{ student.school_college.name|default:student.other_school }}</p>
+                            <p><strong>Grade & Group:</strong> {{ student.get_grade_and_group_display }}</p>
+                            {% if student.section %}
+                                <p><strong>Section:</strong> {{ student.section }}</p>
+                            {% endif %}
+                            <p><strong>Roll:</strong> {{ student.roll }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Registered Events -->
+            <div class="mb-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">
+                    <i class="fas fa-calendar-check text-blue-500 mr-2"></i>
+                    Registered Events
+                </h3>
                 
-                <div>
-                    <h3 class="text-lg print:text-sm font-semibold text-gray-800 mb-3 print:mb-2 border-b pb-1">Student Information</h3>
-                    <div class="space-y-2 print:space-y-1">
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 print:text-xs">Name:</span>
-                            <span class="font-semibold print:text-xs">{{ student.name }}</span>
+                <div class="space-y-4">
+                    {% for registration in student.studenteventregistration_set.all %}
+                        <div class="bg-gray-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h4 class="font-semibold text-gray-800">
+                                        {{ registration.event_option.event.name }}
+                                        <span class="text-sm text-gray-600">
+                                            ({{ registration.event_option.get_event_type_display }})
+                                        </span>
+                                    </h4>
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        {{ registration.event_option.event.description|truncatewords:20 }}
+                                    </p>
+                                    
+                                    <!-- Team Information -->
+                                    {% if registration.event_option.event_type == 'TEAM' and registration.team %}
+                                        <div class="mt-3 bg-white p-3 rounded border">
+                                            <p class="font-medium text-gray-700">Team: {{ registration.team.name }}</p>
+                                            <p class="text-sm text-gray-600 mt-1">Members:</p>
+                                            <ul class="text-sm text-gray-600 ml-4 list-disc">
+                                                {% for member in registration.team.members.all %}
+                                                    <li>{{ member.name }}{% if member.is_leader %} <span class="text-blue-600 font-medium">(Leader)</span>{% endif %}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-semibold text-green-600">৳{{ registration.event_option.fee|floatformat:2 }}</p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 print:text-xs">Registration ID:</span>
-                            <span class="font-semibold font-mono text-sm print:text-xs">{{ student.registration_id }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 print:text-xs">School:</span>
-                            <span class="font-semibold print:text-xs">{{ student.school_college|truncatechars:25 }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 print:text-xs">Grade & Group:</span>
-                            <span class="font-semibold print:text-xs">Grade {{ student.grade }} ({{ student.get_group_display }})</span>
-                        </div>
-                    </div>
+                    {% empty %}
+                        <p class="text-gray-500 italic">No event registrations found.</p>
+                    {% endfor %}
                 </div>
             </div>
 
-            <!-- Events Table -->
-            <div class="mb-8 print:mb-4 receipt-section">
-                <h3 class="text-lg print:text-sm font-semibold text-gray-800 mb-3 print:mb-2 border-b pb-1">Registered Events</h3>
-                <div class="events-table-container">
-                    <table class="w-full border-collapse border border-gray-300 events-table">
-                        <thead>
-                            <tr class="bg-gray-50">
-                                <th class="border border-gray-300 px-4 py-2 print:px-2 print:py-1 text-left text-sm print:text-xs">Event Name</th>
-                                <th class="border border-gray-300 px-4 py-2 print:px-2 print:py-1 text-left text-sm print:text-xs">Description</th>
-                                <th class="border border-gray-300 px-4 py-2 print:px-2 print:py-1 text-right text-sm print:text-xs">Fee</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for event in events %}
-                            <tr>
-                                <td class="border border-gray-300 px-4 py-2 print:px-2 print:py-1 font-medium text-sm print:text-xs">{{ event.name }}</td>
-                                <td class="border border-gray-300 px-4 py-2 print:px-2 print:py-1 text-gray-600 text-sm print:text-xs">{{ event.description|truncatechars:30 }}</td>
-                                <td class="border border-gray-300 px-4 py-2 print:px-2 print:py-1 text-right font-semibold text-sm print:text-xs">৳{{ event.fee }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                        <tfoot>
-                            <tr class="bg-gray-50">
-                                <td class="border border-gray-300 px-4 py-2 print:px-2 print:py-1 font-bold text-sm print:text-xs" colspan="2">Total Amount</td>
-                                <td class="border border-gray-300 px-4 py-2 print:px-2 print:py-1 text-right font-bold text-lg print:text-sm">৳{{ student.total_amount }}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Payment Information -->
-            <div class="mb-8 print:mb-4 receipt-section">
-                <h3 class="text-lg print:text-sm font-semibold text-gray-800 mb-3 print:mb-2 border-b pb-1">Payment Details</h3>
-                <div class="grid grid-cols-2 gap-8 print:gap-4">
-                    <div class="space-y-2 print:space-y-1">
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 print:text-xs">Transaction ID:</span>
-                            <span class="font-semibold font-mono text-sm print:text-xs">{{ payment.transaction_id }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 print:text-xs">Payment Method:</span>
-                            <span class="font-semibold print:text-xs">{{ payment.get_payment_method_display|default:"Online Payment" }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 print:text-xs">Payment Date:</span>
-                            <span class="font-semibold print:text-xs">{{ payment.updated_at|date:"M j, Y" }}</span>
-                        </div>
-                    </div>
-                    <div class="space-y-2 print:space-y-1">
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 print:text-xs">Status:</span>
-                            <span class="font-semibold text-green-600 print:text-xs">{{ payment.get_status_display }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 print:text-xs">Amount Paid:</span>
-                            <span class="font-bold text-xl print:text-sm text-green-600">৳{{ payment.amount }}</span>
-                        </div>
-                    </div>
+            <!-- Total Summary -->
+            <div class="border-t-2 border-gray-200 pt-4">
+                <div class="text-right">
+                    <p class="text-lg font-semibold text-gray-800">
+                        Total Amount Paid: <span class="text-green-600">৳{{ payment.amount|floatformat:2 }}</span>
+                    </p>
                 </div>
             </div>
 
             <!-- Footer -->
-            <div class="mt-12 print:mt-4 pt-8 print:pt-4 border-t print:border-t border-gray-300 receipt-section">
-                <div class="flex justify-between items-center">
-                    <div class="text-sm print:text-xs text-gray-500">
-                        <p>Thank you for participating in Josephite Tech Carnival 2025!</p>
-                        <p>For queries: <a href="mailto:jtc@sjis.edu.bd" class="text-blue-600">jtc@sjis.edu.bd</a></p>
-                    </div>
-                    <div class="text-right text-sm print:text-xs text-gray-500">
-                        <p class="font-semibold">This is a computer-generated receipt.</p>
-                        <p>No signature required.</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- QR Code -->
-            <div class="mt-8 print:mt-4 text-center qr-code">
-                <div class="inline-block p-4 print:p-2 border border-gray-300 rounded">
-                    <img src="{% url 'generate_qr_code' receipt.receipt_number %}" alt="Verification QR Code" class="w-32 h-32 print:w-24 print:h-24 mx-auto">
-                    <p class="text-xs print:text-xs text-gray-500 mt-2">Scan to Verify</p>
+            <div class="mt-8 pt-6 border-t border-gray-200 text-center text-sm text-gray-600">
+                <p class="mb-2">This is a computer-generated receipt. Please keep it for your records.</p>
+                <p class="mb-2">For any queries, please contact us at jtc@sjis.edu.bd</p>
+                <p>Generated on {{ receipt.generated_at|date:"F d, Y \a\\t h:i A" }}</p>
+                
+                <!-- QR Code (if available) -->
+                <div class="mt-4">
+                    <p class="text-xs text-gray-500 mb-2">Scan QR code to verify this receipt:</p>
+                    <img src="{% url 'generate_qr_code' receipt.receipt_number %}" alt="QR Code" class="mx-auto h-20 w-20">
                 </div>
             </div>
         </div>
     </div>
-
-    <script>
-        function sendEmail() {
-            // Get the student ID from the URL or pass it as a parameter
-            const currentUrl = window.location.pathname;
-            const studentId = currentUrl.split('/')[3]; // Assuming URL structure /dashboard/generate-receipt/{id}/
-            
-            if (studentId) {
-                window.location.href = `/dashboard/send-email/${studentId}/`;
-            } else {
-                alert('Unable to determine student ID');
-            }
-        }
-
-        // Auto-focus on print when page loads (optional)
-        window.addEventListener('load', function() {
-            // Uncomment the line below if you want to auto-print when page loads
-            // setTimeout(() => window.print(), 500);
-        });
-    </script>
 </body>
 </html>

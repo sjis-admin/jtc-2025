@@ -415,7 +415,7 @@
 
     .pdf-container {
         width: 100%;
-        height: 60vh;
+        height: 70vh; /* Default height for larger screens */
         border: none;
         border-radius: 12px;
         background: #fff;
@@ -574,6 +574,24 @@
         .view-rules-btn {
             justify-content: center;
         }
+
+        .modal-header, .modal-body {
+            padding: 1rem;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            font-size: 1rem;
+        }
+
+        .pdf-container {
+            height: 60vh;
+        }
     }
 </style>
 {% endblock %}
@@ -596,45 +614,40 @@
 
 <main class="events-container">
     <div class="events-grid" id="eventsGrid">
-        {% for event in events %}
-        <div class="event-card animate-in" style="animation-delay: {{ forloop.counter0|mul:"0.1" }}s;" onclick="openRulesModal('{{ event.id }}')">
+        {% for event_data in events_data %}
+        <div class="event-card animate-in" style="animation-delay: {{ forloop.counter0|mul:"0.1" }}s;" onclick="openRulesModal('{{ event_data.id }}')">
             <div class="event-image-container">
-                {% if event.event_image %}
-                    <img src="{{ event.event_image.url }}" alt="{{ event.name }}" class="event-image">
+                {% if event_data.event_image_url %}
+                    <img src="{{ event_data.event_image_url }}" alt="{{ event_data.name }}" class="event-image">
                 {% else %}
                     <div class="event-default-image">
-                        <i class="fas fa-{% if event.event_type == 'TEAM' %}users{% else %}user{% endif %}"></i>
+                        <i class="fas fa-{% if event_data.has_team %}users{% else %}user{% endif %}"></i>
                     </div>
                 {% endif %}
-                <span class="event-type-badge {% if event.event_type == 'INDIVIDUAL' %}badge-individual{% else %}badge-team{% endif %}">
-                    {% if event.event_type == 'INDIVIDUAL' %}
-                        Individual
-                    {% else %}
-                        Team{% if event.max_team_size %} ({{ event.max_team_size }}){% endif %}
+                <div class="event-type-badge-container" style="position: absolute; top: 1rem; right: 1rem; display: flex; gap: 0.5rem;">
+                    {% if event_data.has_individual %}
+                    <span class="event-type-badge badge-individual">Individual</span>
                     {% endif %}
-                </span>
+                    {% if event_data.has_team %}
+                    <span class="event-type-badge badge-team">Team</span>
+                    {% endif %}
+                </div>
             </div>
             <div class="event-content">
-                <h3 class="event-title">{{ event.name }}</h3>
-                <p class="event-description">{{ event.description|truncatechars:150 }}</p>
+                <h3 class="event-title">{{ event_data.name }}</h3>
+                <p class="event-description">{{ event_data.description|truncatechars:150 }}</p>
                 <div class="event-meta">
                     <div class="meta-item">
-                        <i class="fas fa-{% if event.event_type == 'INDIVIDUAL' %}user{% else %}users{% endif %}"></i>
-                        <span>{{ event.get_event_type_display }}</span>
-                    </div>
-                    {% if event.max_participants %}
-                    <div class="meta-item">
                         <i class="fas fa-users"></i>
-                        <span>Max: {{ event.max_participants }}</span>
+                        <span>{{ event_data.registration_count }} Registered</span>
                     </div>
-                    {% endif %}
                     <div class="meta-item">
                         <i class="fas fa-calendar-alt"></i>
-                        <span>{{ event.created_at|date:"M j" }}</span>
+                        <span>{{ event_data.created_at|date:"M j" }}</span>
                     </div>
                 </div>
                 <div class="event-footer">
-                    <span class="event-fee">৳{{ event.fee|floatformat:0 }}</span>
+                    <span class="event-fee">{{ event_data.fee }}</span>
                     <div class="view-rules-btn">
                         <i class="fas fa-book-open"></i>
                         <span>View Rules</span>
@@ -684,12 +697,12 @@
 <script>
     // Event data from Django backend
     const eventsData = {
-        {% for event in events %}
-        '{{ event.id }}': {
-            title: '{{ event.name|escapejs }}',
-            subtitle: '{{ event.get_event_type_display|escapejs }} Event',
-            type: '{{ event.rules_type|lower }}',
-            content: {% if event.rules_type == 'TEXT' %}'{{ event.rules_text|escapejs }}'{% elif event.rules_type == 'IMAGE' %}'{{ event.rules_file.url|default:"" }}'{% elif event.rules_type == 'PDF' %}'{{ event.rules_file.url|default:"" }}'{% endif %}
+        {% for event_data in events_data %}
+        '{{ event_data.id }}': {
+            title: '{{ event_data.name|escapejs }}',
+            subtitle: '{% if event_data.has_individual and event_data.has_team %}Individual & Team Event{% elif event_data.has_individual %}Individual Event{% else %}Team Event{% endif %}',
+            type: '{{ event_data.rules_type|lower }}',
+            content: {% if event_data.rules_type == 'TEXT' %}'{{ event_data.rules_text|escapejs }}'{% elif event_data.rules_file_url %}'{{ event_data.rules_file_url }}'{% else %}''{% endif %}
         }{% if not forloop.last %},{% endif %}
         {% endfor %}
     };

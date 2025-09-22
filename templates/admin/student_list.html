@@ -95,9 +95,9 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Grade</label>
                     <select name="grade" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         <option value="">All Grades</option>
-                        {% for grade_code, grade_name in grades %}
-                        <option value="{{ grade_code }}" {% if grade_filter == grade_code %}selected{% endif %}>
-                            {{ grade_name }}
+                        {% for grade in grades %}
+                        <option value="{{ grade.id }}" {% if grade_filter == grade.id|stringformat:"s" %}selected{% endif %}>
+                            {{ grade.name }}
                         </option>
                         {% endfor %}
                     </select>
@@ -214,7 +214,7 @@
                             <div class="text-xs text-gray-500 mt-1">{{ student.events.count }} event(s)</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900">৳{{ student.total_amount|floatformat:0 }}</div>
+                            <div class="text-sm font-medium text-gray-900">৳{{ student.total_amount_paid|default:0|floatformat:0 }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             {% if student.is_paid %}

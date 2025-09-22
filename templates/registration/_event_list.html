@@ -1,0 +1,193 @@
+<!-- templates/registration/_event_list.html -->
+{% if show_no_grade_message %}
+    <div class="text-center py-8">
+        <div class="text-gray-400 text-lg">
+            <i class="fas fa-graduation-cap text-4xl mb-4 block text-gray-300"></i>
+            Please select your grade first to see available events
+        </div>
+        <p class="text-gray-400 text-sm mt-2">Events are filtered based on your grade level</p>
+    </div>
+
+{% elif show_error_message %}
+    <div class="text-center py-8">
+        <div class="text-red-500 text-lg">
+            <i class="fas fa-exclamation-triangle text-4xl mb-4 block"></i>
+            Error loading events
+        </div>
+        <p class="text-red-400 text-sm mt-2">Please try refreshing the page or contact support</p>
+    </div>
+
+{% elif show_no_events_message %}
+    <div class="text-center py-8">
+        <div class="text-yellow-600 text-lg">
+            <i class="fas fa-info-circle text-4xl mb-4 block text-yellow-500"></i>
+            No events available for {{ selected_grade.name }}
+        </div>
+        <p class="text-yellow-600 text-sm mt-2">Events for this grade level will be added soon. Please check back later or contact us for more information.</p>
+        <div class="mt-4">
+            <a href="{% url 'home' %}" class="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">
+                <i class="fas fa-home mr-2"></i>
+                Back to Home
+            </a>
+        </div>
+    </div>
+
+{% elif events %}
+    {% for event in events %}
+        <div class="event-section mb-8 animate-fadeIn">
+            <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-4 rounded-t-xl">
+                <h3 class="text-xl font-bold flex items-center">
+                    <i class="fas fa-trophy mr-2"></i>
+                    {{ event.name }}
+                </h3>
+                <p class="text-purple-100 mt-2">{{ event.description }}</p>
+                {% if selected_grade %}
+                    <div class="mt-2 text-xs text-purple-200">
+                        <i class="fas fa-check-circle mr-1"></i>
+                        Available for {{ selected_grade.name }}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="bg-white border-l border-r border-b border-gray-200 rounded-b-xl p-6">
+                <div class="grid gap-4">
+                    {% for option in event.options.all %}
+                        <div class="event-card-container relative">
+                            <div class="border border-gray-300 rounded-lg p-4 hover:shadow-md transition-shadow duration-200">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-4">
+                                        <div class="relative">
+                                            <input 
+                                                type="checkbox" 
+                                                id="event_{{ option.id }}" 
+                                                name="events"
+                                                value="{{ option.id }}"
+                                                class="event-option-checkbox h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                data-event-id="{{ event.id }}"
+                                                data-option-type="{{ option.event_type }}"
+                                                data-fee="{{ option.fee }}"
+                                            >
+                                        </div>
+                                        
+                                        <div class="flex-1">
+                                            <label for="event_{{ option.id }}" class="cursor-pointer">
+                                                <div class="font-medium text-gray-900">
+                                                    {{ option.name }}
+                                                    {% if option.event_type == 'TEAM' %}
+                                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 ml-2">
+                                                            <i class="fas fa-users mr-1"></i>
+                                                            Team ({{ option.max_team_size }} members max)
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ml-2">
+                                                            <i class="fas fa-user mr-1"></i>
+                                                            Individual
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+                                                
+                                                <div class="text-sm text-gray-600 mt-1">
+                                                    Registration fee: <span class="font-semibold text-green-600">৳{{ option.fee }}</span>
+                                                    {% if option.max_participants %}
+                                                        | Max participants: {{ option.max_participants }}
+                                                    {% endif %}
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Team Details Section (Hidden by default) -->
+                                {% if option.event_type == 'TEAM' %}
+                                <div id="team-details-{{ option.id }}" class="hidden mt-4 p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+                                    <h4 class="font-medium text-gray-900 mb-3">
+                                        <i class="fas fa-users mr-2"></i>
+                                        Team Information
+                                    </h4>
+                                    
+                                    <!-- Team Name -->
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            Team Name <span class="text-red-500">*</span>
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            name="team_name_{{ option.id }}" 
+                                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                                            placeholder="Enter your team name"
+                                        >
+                                    </div>
+                                    
+                                    <!-- Team Leader (Registering Person) -->
+                                    <div class="mb-4">
+                                        <div class="flex items-center space-x-2">
+                                            <input 
+                                                type="radio" 
+                                                name="team_leader_{{ option.id }}" 
+                                                value="0" 
+                                                class="h-5 w-5 text-blue-600 border-gray-300 rounded-full focus:ring-blue-500"
+                                                checked
+                                            >
+                                            <label class="text-sm font-medium text-gray-700">
+                                                I am the team leader (registering person)
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Team Members Container -->
+                                    <div id="team-members-container-{{ option.id }}" class="space-y-2">
+                                        <!-- Team members will be added here dynamically -->
+                                    </div>
+                                    
+                                    <!-- Add Team Member Button -->
+                                    <div class="mt-4">
+                                        <button 
+                                            type="button" 
+                                            class="add-team-member bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            data-option-id="{{ option.id }}"
+                                            data-max-team-size="{{ option.max_team_size }}"
+                                        >
+                                            <i class="fas fa-plus mr-2"></i>
+                                            Add Team Member
+                                        </button>
+                                        
+                                        <!-- Team Size Info -->
+                                        <div id="team-size-info-{{ option.id }}" class="text-sm text-gray-600 mt-2">
+                                            You can add {{ option.max_team_size|add:"-1" }} more member(s). The person registering is considered the first member.
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Validation Message (Hidden by default) -->
+                            <div class="validation-message hidden mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>
+                                You can only select one option per event.
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="text-center py-8">
+        <div class="text-gray-400 text-lg">
+            <i class="fas fa-calendar-times text-4xl mb-4 block text-gray-300"></i>
+            No events loaded
+        </div>
+        <p class="text-gray-400 text-sm mt-2">Please select your grade to see available events</p>
+    </div>
+{% endif %}
+
+<style>
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.5s ease-out;
+}
+</style>

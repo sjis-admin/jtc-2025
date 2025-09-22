@@ -6,6 +6,7 @@ PRODUCTION-READY with Security Enhancements
 from pathlib import Path
 import os
 from decouple import config
+from decimal import Decimal
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -122,6 +123,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SSLCOMMERZ_STORE_ID = config('SSLCOMMERZ_STORE_ID')
 SSLCOMMERZ_STORE_PASSWORD = config('SSLCOMMERZ_STORE_PASSWORD')
 SSLCOMMERZ_IS_SANDBOX = config('SSLCOMMERZ_IS_SANDBOX', default=True, cast=bool)
+SSLCOMMERZ_FEE_PERCENTAGE = config('SSLCOMMERZ_FEE_PERCENTAGE', default='0.015', cast=Decimal)
 
 if SSLCOMMERZ_IS_SANDBOX:
     SSLCOMMERZ_API_URL = "https://sandbox.sslcommerz.com/gwprocess/v4/api.php"
@@ -149,7 +151,7 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_BROWSER_XSS_FILTER = True
-    X_FRAME_OPTIONS = 'DENY'
+    X_FRAME_OPTIONS = 'SAMEORIGIN'
     SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
     
     # Cookie Security
@@ -243,6 +245,11 @@ LOGGING = {
     },
     'loggers': {
         'registration.utils': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'registration.admin': {
             'handlers': ['file', 'console'],
             'level': 'INFO',
             'propagate': True,

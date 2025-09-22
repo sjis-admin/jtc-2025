@@ -73,6 +73,7 @@
             max-height: 100%;
         }
     </style>
+
     <script>
         tailwind.config = {
             theme: {
@@ -225,42 +226,15 @@
         </div>
     </footer>
 
-    {% block scripts %}
-{% if user.is_staff %}
-<script>
-    (function() {
-        const timeout = 600000; // 10 minutes in milliseconds
-        let timer;
-
-        function resetTimer() {
-            clearTimeout(timer);
-            timer = setTimeout(logout, timeout);
-        }
-
-        function logout() {
-            // Show a message and redirect to logout page
-            alert("Your session has expired due to inactivity.");
-            window.location.href = "{% url 'admin_logout' %}";
-        }
-
-        // Reset timer on user activity
-        document.addEventListener("mousemove", resetTimer);
-        document.addEventListener("keypress", resetTimer);
-
-        // Initial timer start
-        resetTimer();
-    })();
-</script>
-{% endif %}
-{% endblock %}
-
-<div id="fullscreen-overlay" class="fixed inset-0 z-50 hidden bg-black bg-opacity-90 p-4 sm:p-8">
-    <button onclick="closeFullscreen()" class="absolute top-4 right-4 text-white text-4xl font-bold">&times;</button>
-    <div id="fullscreen-content" class="w-full h-full flex items-center justify-center">
-        <div class="scrollable-content w-full h-full">
+    <div id="fullscreen-overlay" class="fixed inset-0 z-50 hidden bg-black bg-opacity-90 p-4 sm:p-8">
+        <button onclick="closeFullscreen()" class="absolute top-4 right-4 text-white text-4xl font-bold">&times;</button>
+        <div id="fullscreen-content" class="w-full h-full flex items-center justify-center">
+            <div class="scrollable-content w-full h-full">
+            </div>
         </div>
     </div>
-</div>
 
+    <script src="{% static 'registration/js/htmx-enhancement.js' %}"></script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>

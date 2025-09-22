@@ -1,0 +1,6 @@
+<!-- _event_list_with_total.html -->
+{% include 'registration/_event_list.html' %}
+
+<div id="total-amount" hx-swap-oob="true">
+    <span class="text-2xl font-bold text-green-600">৳{{ total|floatformat:2 }}</span>
+</div>

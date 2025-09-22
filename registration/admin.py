@@ -6,10 +6,10 @@ from django.urls import path, reverse
 from django.http import HttpResponseRedirect
 from django.contrib import messages
 from django.db.models import Count
-from .models import (Student, Event, Payment, AdminLog, Receipt, 
+from .models import (Student, Event, EventOption, Payment, AdminLog, Receipt, 
                     StudentEventRegistration, School, Countdown, 
                     HomePageAsset, SocialMediaProfile, TeamMemberProfile, PastEventImage,
-                    ValorantBackgroundVideo, SiteLogo)
+                    ValorantBackgroundVideo, SiteLogo, Grade)
 
 @admin.register(TeamMemberProfile)
 class TeamMemberProfileAdmin(admin.ModelAdmin):
@@ -153,26 +153,36 @@ class StudentAdmin(admin.ModelAdmin):
     
     def send_confirmation_email(self, request, queryset):
         from .views import send_registration_email
-        count = 0
-        for student in queryset:
-            if student.is_paid:
-                receipt = student.receipts.first()
-                if receipt:
-                    try:
-                        send_registration_email(student, receipt)
-                        count += 1
-                    except Exception:
-                        pass
-        
-        log_admin_action(
-            user=request.user,
-            action='EMAIL_SENT',
-            model_name='Student',
-            description=f'Sent confirmation emails to {count} students',
-            ip_address=get_client_ip(request)
-        )
-        
-        self.message_user(request, f'Sent confirmation emails to {count} students.')
+        import threading
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        def send_emails_in_background(students):
+            count = 0
+            for student in students:
+                if student.is_paid:
+                    receipt = student.receipts.first()
+                    if receipt:
+                        try:
+                            send_registration_email(student, receipt)
+                            count += 1
+                        except Exception as e:
+                            logger.error(f"Failed to send email to {student.email}: {e}")
+            
+            log_admin_action(
+                user=request.user,
+                action='EMAIL_SENT',
+                model_name='Student',
+                description=f'Attempted to send confirmation emails to {count} students in the background.',
+                ip_address=get_client_ip(request)
+            )
+
+        students_to_email = list(queryset)
+        thread = threading.Thread(target=send_emails_in_background, args=(students_to_email,))
+        thread.start()
+
+        self.message_user(request, f'Started sending confirmation emails to {len(students_to_email)} students in the background.')
     send_confirmation_email.short_description = 'Send confirmation email'
     
     def save_model(self, request, obj, form, change):
@@ -188,43 +198,36 @@ class StudentAdmin(admin.ModelAdmin):
             ip_address=get_client_ip(request)
         )
 
+@admin.register(Grade)
+class GradeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'order')
+
+class EventOptionInline(admin.TabularInline):
+    model = EventOption
+    extra = 1
+
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ['name', 'fee', 'event_type', 'max_team_size', 'is_active', 'registration_count', 'created_at']
-    list_filter = ['is_active', 'event_type', 'created_at']
+    list_display = ['name', 'is_active', 'created_at']
+    list_filter = ['is_active', 'created_at', 'target_grades']
     search_fields = ['name', 'description']
     ordering = ['-created_at']
+    filter_horizontal = ('target_grades',)
+    inlines = [EventOptionInline]
     
     fieldsets = (
         (None, {
-            'fields': ('name', 'description', 'fee', 'is_active')
+            'fields': ('name', 'description', 'is_active', 'target_grades')
         }),
         ('Event Media', {
             'fields': ('event_image',)
-        }),
-        ('Event Type', {
-            'fields': ('event_type', 'max_team_size', 'max_participants'),
         }),
         ('Event Rules', {
             'fields': ('rules_type', 'rules_text', 'rules_file'),
         }),
     )
 
-    def registration_count(self, obj):
-        count = obj.student_set.count()
-        return format_html('<strong>{}</strong>', count)
-    registration_count.short_description = 'Registrations'
-    
-    def get_queryset(self, request):
-        return super().get_queryset(request).annotate(
-            registration_count=Count('student')
-        )
-    
     def save_model(self, request, obj, form, change):
-        if obj.event_type == 'TEAM' and not obj.max_team_size:
-            messages.error(request, "Max team size is required for team events.")
-            return
-        
         super().save_model(request, obj, form, change)
         
         action = 'UPDATE' if change else 'CREATE'
@@ -239,117 +242,3 @@ class EventAdmin(admin.ModelAdmin):
 
     class Media:
         js = ('admin/js/event_admin.js',)
-
-
-@admin.register(Payment)
-class PaymentAdmin(admin.ModelAdmin):
-    list_display = [
-        'transaction_id', 'student_name', 'amount', 'payment_method', 
-        'status', 'created_at'
-    ]
-    list_filter = ['status', 'payment_method', 'created_at']
-    search_fields = ['transaction_id', 'student__name', 'student__email']
-    readonly_fields = ['transaction_id', 'gateway_response', 'created_at', 'updated_at']
-    ordering = ['-created_at']
-    date_hierarchy = 'created_at'
-    
-    fieldsets = (
-        ('Payment Information', {
-            'fields': ('student', 'transaction_id', 'amount', 'payment_method', 'status')
-        }),
-        ('Gateway Details', {
-            'fields': ('sessionkey', 'gateway_txnid', 'gateway_response'),
-            'classes': ('collapse',)
-        }),
-        ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
-    )
-    
-    def student_name(self, obj):
-        return obj.student.name
-    student_name.short_description = 'Student'
-    
-    actions = ['mark_as_success', 'mark_as_failed']
-    
-    def mark_as_success(self, request, queryset):
-        updated = 0
-        for payment in queryset:
-            if payment.status != 'SUCCESS':
-                payment.status = 'SUCCESS'
-                payment.student.is_paid = True
-                payment.student.payment_verified = True
-                payment.student.save()
-                payment.save()
-                updated += 1
-        
-        log_admin_action(
-            user=request.user,
-            action='PAYMENT_VERIFY',
-            model_name='Payment',
-            description=f'Marked {updated} payments as successful',
-            ip_address=get_client_ip(request)
-        )
-        
-        self.message_user(request, f'{updated} payments marked as successful.')
-    mark_as_success.short_description = 'Mark selected payments as successful'
-    
-    def mark_as_failed(self, request, queryset):
-        updated = queryset.update(status='FAILED')
-        
-        log_admin_action(
-            user=request.user,
-            action='UPDATE',
-            model_name='Payment',
-            description=f'Marked {updated} payments as failed',
-            ip_address=get_client_ip(request)
-        )
-        
-        self.message_user(request, f'{updated} payments marked as failed.')
-    mark_as_failed.short_description = 'Mark selected payments as failed'
-
-@admin.register(Receipt)
-class ReceiptAdmin(admin.ModelAdmin):
-    list_display = [
-        'receipt_number', 'student_name', 'payment_amount', 
-        'generated_at', 'email_sent', 'generated_by'
-    ]
-    list_filter = ['email_sent', 'generated_at']
-    search_fields = ['receipt_number', 'student__name', 'student__email']
-    readonly_fields = ['receipt_number', 'generated_at', 'email_sent_at']
-    ordering = ['-generated_at']
-    
-    def student_name(self, obj):
-        return obj.student.name
-    student_name.short_description = 'Student'
-    
-    def payment_amount(self, obj):
-        return f'৳{obj.payment.amount}'
-    payment_amount.short_description = 'Amount'
-
-@admin.register(AdminLog)
-class AdminLogAdmin(admin.ModelAdmin):
-    list_display = [
-        'admin_user', 'action', 'model_name', 'object_id', 
-        'timestamp', 'ip_address'
-    ]
-    list_filter = ['action', 'model_name', 'timestamp', 'admin_user']
-    search_fields = ['admin_user__username', 'description', 'object_id']
-    readonly_fields = ['admin_user', 'action', 'model_name', 'object_id', 'description', 'ip_address', 'timestamp']
-    ordering = ['-timestamp']
-    date_hierarchy = 'timestamp'
-    
-    def has_add_permission(self, request):
-        return False
-    
-    def has_change_permission(self, request, obj=None):
-        return False
-    
-    def has_delete_permission(self, request, obj=None):
-        return False
-
-# Customize admin site
-admin.site.site_header = 'Josephite Tech Club Admin'
-admin.site.site_title = 'JTC Admin'
-admin.site.index_title = 'Welcome to Josephite Tech Club Administration'

@@ -1,90 +1,168 @@
 <!-- templates/registration/payment_success.html -->
 {% extends 'base.html' %}
 
-{% block title %}Payment Successful - Josephite Tech Carnival 2025{% endblock %}
+{% block title %}Payment Successful - JTC 2025{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto text-center">
-    <div class="bg-white rounded-2xl shadow-xl p-8">
-        <!-- Success Icon -->
-        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <i class="fas fa-check-circle text-green-500 text-4xl"></i>
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Success Header -->
+    <div class="text-center mb-8">
+        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+            <i class="fas fa-check-circle text-3xl text-green-500"></i>
         </div>
-        
-        <h1 class="text-3xl font-bold text-gray-800 mb-4">Payment Successful!</h1>
-        <p class="text-gray-600 text-lg mb-8">
-            Congratulations! Your registration for Josephite Tech Carnival 2025 has been completed successfully.
-        </p>
-        
-        <!-- Student Details -->
-        <div class="bg-gray-50 rounded-lg p-6 mb-8 text-left">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Registration Details</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <h1 class="text-4xl font-bold text-green-600 mb-2">Payment Successful!</h1>
+        <p class="text-lg text-gray-600">Your registration for JTC 2025 has been confirmed</p>
+    </div>
+
+    <!-- Payment Details Card -->
+    <div class="bg-white rounded-2xl shadow-lg p-8 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Left Column - Student Info -->
+            <div class="space-y-6">
                 <div>
-                    <span class="text-sm text-gray-500">Name:</span>
-                    <div class="font-medium">{{ student.name }}</div>
-                </div>
-                <div>
-                    <span class="text-sm text-gray-500">Registration ID:</span>
-                    <div class="font-medium">{{ student.registration_id }}</div>
-                </div>
-                <div>
-                    <span class="text-sm text-gray-500">School/College:</span>
-                    <div class="font-medium">{{ student.school_college }}</div>
-                </div>
-                <div>
-                    <span class="text-sm text-gray-500">Grade:</span>
-                    <div class="font-medium">Grade {{ student.grade }} ({{ student.get_group_display }})</div>
-                </div>
-                <div>
-                    <span class="text-sm text-gray-500">Email:</span>
-                    <div class="font-medium">{{ student.email }}</div>
-                </div>
-                <div>
-                    <span class="text-sm text-gray-500">Total Amount Paid:</span>
-                    <div class="font-medium text-green-600">৳{{ student.total_amount }}</div>
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-user text-blue-500 mr-2"></i>
+                        Student Information
+                    </h2>
+                    
+                    <div class="bg-blue-50 rounded-lg p-4 space-y-2">
+                        <p><strong>Registration ID:</strong> {{ student.registration_id }}</p>
+                        <p><strong>Name:</strong> {{ student.name }}</p>
+                        <p><strong>Email:</strong> {{ student.email }}</p>
+                        <p><strong>Mobile:</strong> {{ student.mobile_number }}</p>
+                        <p><strong>School:</strong> {{ student.school_college.name|default:student.other_school }}</p>
+                        <p><strong>Grade:</strong> {{ student.grade.name }} ({{ student.get_group_display }})</p>
+                    </div>
                 </div>
             </div>
-            
-            <div class="mt-4">
-                <span class="text-sm text-gray-500">Selected Events:</span>
-                <div class="flex flex-wrap gap-2 mt-1">
-                    {% for event in student.events.all %}
-                        <span class="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">{{ event.name }}</span>
-                    {% endfor %}
+
+            <!-- Right Column - Payment Info -->
+            <div class="space-y-6">
+                <div>
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-credit-card text-green-500 mr-2"></i>
+                        Payment Information
+                    </h2>
+                    
+                    <div class="bg-green-50 rounded-lg p-4 space-y-2">
+                        <p><strong>Receipt Number:</strong> {{ receipt.receipt_number }}</p>
+                        <p><strong>Transaction ID:</strong> {{ payment.transaction_id }}</p>
+                        <p><strong>Amount Paid:</strong> <span class="text-green-600 font-semibold">৳{{ payment.amount|floatformat:2 }}</span></p>
+                        <p><strong>Payment Method:</strong> {{ payment.get_payment_method_display|default:"N/A" }}</p>
+                        <p><strong>Date:</strong> {{ payment.completed_at|date:"F d, Y \a\\t h:i A" }}</p>
+                        <p><strong>Status:</strong> <span class="text-green-600 font-semibold">✓ VERIFIED</span></p>
+                    </div>
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Registered Events -->
+    <div class="bg-white rounded-2xl shadow-lg p-8 mb-8">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
+            <i class="fas fa-calendar-check text-purple-500 mr-2"></i>
+            Selected Events
+        </h2>
         
-        <!-- Next Steps -->
-        <div class="bg-blue-50 rounded-lg p-6 mb-8">
-            <h3 class="text-lg font-semibold text-blue-800 mb-4">What's Next?</h3>
-            <ul class="text-blue-700 space-y-2">
-                <li class="flex items-center justify-center">
-                    <i class="fas fa-envelope text-blue-500 mr-2"></i>
-                    Check your email for the registration confirmation
-                </li>
-                <li class="flex items-center justify-center">
-                    <i class="fas fa-calendar-alt text-blue-500 mr-2"></i>
-                    Event details will be shared via email
-                </li>
-                <li class="flex items-center justify-center">
-                    <i class="fas fa-certificate text-blue-500 mr-2"></i>
-                    Participation certificates will be sent after the event
-                </li>
-            </ul>
+        <div class="space-y-4">
+            {% for registration in event_registrations %}
+                <div class="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-500 rounded-r-lg p-6">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <h3 class="text-xl font-semibold text-gray-800">
+                                {{ registration.event_option.event.name }}
+                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                    {% if registration.event_option.event_type == 'TEAM' %}bg-green-100 text-green-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                                    <i class="fas {% if registration.event_option.event_type == 'TEAM' %}fa-users{% else %}fa-user{% endif %} mr-1"></i>
+                                    ({{ registration.event_option.get_event_type_display }})
+                                </span>
+                            </h3>
+                            <p class="text-gray-600 mt-2">{{ registration.event_option.event.description|truncatewords:25 }}</p>
+                            
+                            <!-- Team Information -->
+                            {% if registration.event_option.event_type == 'TEAM' and registration.team %}
+                                <div class="mt-4 bg-white rounded-lg p-4 border">
+                                    <h4 class="font-medium text-gray-700 mb-2">
+                                        <i class="fas fa-users text-green-500 mr-2"></i>
+                                        Team: {{ registration.team.name }}
+                                    </h4>
+                                    <div class="text-sm text-gray-600">
+                                        <p class="mb-2">Team Members:</p>
+                                        <ul class="list-disc list-inside ml-2 space-y-1">
+                                            {% for member in registration.team.members.all %}
+                                                <li>
+                                                    {{ member.name }}
+                                                    {% if member.is_leader %}
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                            <i class="fas fa-crown mr-1"></i>Leader
+                                                        </span>
+                                                    {% endif %}
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="text-right ml-6">
+                            <p class="text-2xl font-bold text-green-600">৳{{ registration.event_option.fee|floatformat:2 }}</p>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
         </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="{% url 'receipt_print_view' receipt.receipt_number %}" 
+           target="_blank"
+           class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+            <i class="fas fa-print mr-2"></i>
+            Print Receipt
+        </a>
         
-        <!-- Action Buttons -->
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="{% url 'home' %}" class="bg-primary hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors">
-                <i class="fas fa-home mr-2"></i>
-                Back to Home
-            </a>
-            <button onclick="window.print()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition-colors">
-                <i class="fas fa-print mr-2"></i>
-                Print Receipt
-            </button>
+        <a href="{% url 'generate_qr_code' receipt.receipt_number %}" 
+           target="_blank"
+           class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+            <i class="fas fa-qrcode mr-2"></i>
+            View QR Code
+        </a>
+        
+        <a href="{% url 'home' %}" 
+           class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+            <i class="fas fa-home mr-2"></i>
+            Back to Home
+        </a>
+    </div>
+
+    <!-- Important Notice -->
+    <div class="mt-8 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-yellow-800">Important Notice</h3>
+                <div class="mt-2 text-sm text-yellow-700">
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li>Please save this receipt for your records</li>
+                        <li>A confirmation email has been sent to {{ student.email }}</li>
+                        <li>Bring a printed copy of this receipt on the event day</li>
+                        <li>For any queries, contact us at jtc@sjis.edu.bd</li>
+                        <li>Event details and schedule will be shared via email and WhatsApp</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Information -->
+    <div class="mt-8 text-center text-gray-600">
+        <p class="mb-2">Need help? Contact us:</p>
+        <div class="flex justify-center space-x-6 text-sm">
+            <span><i class="fas fa-envelope mr-1"></i> jtc@sjis.edu.bd</span>
+            <span><i class="fas fa-phone mr-1"></i> +880 1234 567890</span>
         </div>
     </div>
 </div>

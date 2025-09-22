@@ -1,0 +1,10 @@
+<!-- templates/registration/_group_display.html -->
+<div id="group-display" 
+     hx-get="{% url 'get_group_for_grade' %}" 
+     hx-trigger="change from:#id_grade"
+     hx-include="#id_grade"
+     hx-target="this"
+     hx-swap="outerHTML"
+     class="{{ css_classes }}">
+    {{ group_display }}
+</div>

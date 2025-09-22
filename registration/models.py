@@ -22,12 +22,17 @@ class School(models.Model):
     def __str__(self):
         return self.name
 
-class Event(models.Model):
-    EVENT_TYPE_CHOICES = [
-        ('INDIVIDUAL', 'Individual'),
-        ('TEAM', 'Team'),
-    ]
+class Grade(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    order = models.PositiveIntegerField(default=0)
 
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return self.name
+
+class Event(models.Model):
     RULES_TYPE_CHOICES = [
         ('TEXT', 'Text'),
         ('IMAGE', 'Image'),
@@ -37,29 +42,9 @@ class Event(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField()
     event_image = models.ImageField(upload_to='event_images/', blank=True, null=True)
-    fee = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=500.00,
-        validators=[MinValueValidator(Decimal('0.01'))]
-    )
     is_active = models.BooleanField(default=True)
-    max_participants = models.PositiveIntegerField(null=True, blank=True, help_text="Keep blank for unlimited participants.")
+    target_grades = models.ManyToManyField(Grade, related_name='events', blank=True)
     
-    # New fields for event type
-    event_type = models.CharField(
-        max_length=10,
-        choices=EVENT_TYPE_CHOICES,
-        default='INDIVIDUAL',
-        help_text="Select 'Team' for team-based events."
-    )
-    max_team_size = models.PositiveIntegerField(
-        null=True,
-        blank=True,
-        validators=[MinValueValidator(2)],
-        help_text="Required if event type is 'Team'. Minimum 2 members."
-    )
-
     # New fields for rules
     rules_type = models.CharField(max_length=10, choices=RULES_TYPE_CHOICES, default='TEXT')
     rules_text = models.TextField(blank=True)
@@ -67,6 +52,7 @@ class Event(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
     def get_gradient_class(self):
         """
         Return CSS gradient class based on event name hash
@@ -83,6 +69,22 @@ class Event(models.Model):
         hash_value = hash(self.name) % len(gradient_classes)
         return gradient_classes[hash_value]
 
+    def __str__(self):
+        return self.name
+
+class EventOption(models.Model):
+    EVENT_TYPE_CHOICES = [
+        ('INDIVIDUAL', 'Individual'),
+        ('TEAM', 'Team'),
+    ]
+
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='options')
+    name = models.CharField(max_length=100, help_text="e.g., 'Individual', 'Team'")
+    event_type = models.CharField(max_length=10, choices=EVENT_TYPE_CHOICES, default='INDIVIDUAL')
+    fee = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))])
+    max_participants = models.PositiveIntegerField(null=True, blank=True, help_text="Keep blank for unlimited participants.")
+    max_team_size = models.PositiveIntegerField(null=True, blank=True, validators=[MinValueValidator(2)], help_text="Required if event type is 'Team'. Minimum 2 members.")
+
     def clean(self):
         if self.event_type == 'TEAM' and not self.max_team_size:
             raise ValidationError({'max_team_size': "Max team size is required for team events."})
@@ -90,30 +92,9 @@ class Event(models.Model):
             self.max_team_size = None
 
     def __str__(self):
-        return self.name
-    
-    def get_registration_count(self):
-        return self.student_set.count()
-    
-    def is_registration_full(self):
-        if self.max_participants:
-            return self.get_registration_count() >= self.max_participants
-        return False
+        return f"{self.event.name} - {self.name}"
 
 class Student(models.Model):
-    GRADE_CHOICES = [
-        ('3', 'Grade 3'),
-        ('4', 'Grade 4'),
-        ('5', 'Grade 5'),
-        ('6', 'Grade 6'),
-        ('7', 'Grade 7'),
-        ('8', 'Grade 8'),
-        ('9', 'Grade 9'),
-        ('10', 'Grade 10'),
-        ('11', 'Grade 11'),
-        ('12', 'Grade 12'),
-    ]
-    
     GROUP_CHOICES = [
         ('A', 'Group A (Grade 3-4)'),
         ('B', 'Group B (Grade 5-6)'),
@@ -125,7 +106,7 @@ class Student(models.Model):
     name = models.CharField(max_length=200)
     school_college = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, blank=True)
     other_school = models.CharField(max_length=300, blank=True, null=True)
-    grade = models.CharField(max_length=2, choices=GRADE_CHOICES)
+    grade = models.ForeignKey(Grade, on_delete=models.SET_NULL, null=True)
     group = models.CharField(max_length=1, choices=GROUP_CHOICES, editable=False)
     section = models.CharField(max_length=50, blank=True, null=True, help_text="Only for SJIS students")
     roll = models.CharField(max_length=50, help_text="Unique identification from school")
@@ -139,13 +120,13 @@ class Student(models.Model):
     mobile_number = models.CharField(validators=[mobile_regex], max_length=17)
     
     # Registration Details
-    events = models.ManyToManyField(Event, through='StudentEventRegistration')
+    events = models.ManyToManyField(EventOption, through='StudentEventRegistration')
     registration_id = models.CharField(max_length=20, unique=True, editable=False)
     total_amount = models.DecimalField(
-    max_digits=10,
-    decimal_places=2,
-    default=0.00,
-    validators=[MinValueValidator(Decimal('0.00'))]   # ✅ fixed
+        max_digits=10,
+        decimal_places=2,
+        default=0.00,
+        validators=[MinValueValidator(Decimal('0.00'))]
     )
     is_paid = models.BooleanField(default=False)
     payment_verified = models.BooleanField(default=False)
@@ -171,14 +152,14 @@ class Student(models.Model):
         super().clean()
         # Validate grade and group consistency
         if self.grade:
-            expected_group = self.calculate_group_from_grade(self.grade)
+            expected_group = self.calculate_group_from_grade_id(self.grade.id)
             if self.group and self.group != expected_group:
-                raise ValidationError(f"Grade {self.grade} should be in Group {expected_group}")
+                raise ValidationError(f"Grade {self.grade.name} should be in Group {expected_group}")
     
     def save(self, *args, **kwargs):
         # Auto-assign group based on grade ranges
         if self.grade:
-            self.group = self.calculate_group_from_grade(self.grade)
+            self.group = self.calculate_group_from_grade_id(self.grade.id)
 
         if not self.registration_id:
             current_year = timezone.now().strftime('%y')
@@ -200,22 +181,79 @@ class Student(models.Model):
         super().save(*args, **kwargs)
     
     @staticmethod
-    def calculate_group_from_grade(grade):
-        """Calculate group based on grade"""
+    def calculate_group_from_grade_id(grade_id):
+        """Calculate group based on grade ID using the Grade model's order field"""
         try:
-            grade_int = int(grade)
-            if 3 <= grade_int <= 4:
+            grade = Grade.objects.get(id=grade_id)
+            grade_order = grade.order
+            
+            # Determine group based on the 'order' field
+            if 3 <= grade_order <= 4:
                 return 'A'
-            elif 5 <= grade_int <= 6:
+            elif 5 <= grade_order <= 6:
                 return 'B'
-            elif 7 <= grade_int <= 8:
+            elif 7 <= grade_order <= 8:
                 return 'C'
-            elif 9 <= grade_int <= 12:
+            elif 9 <= grade_order <= 12:
                 return 'D'
             else:
-                raise ValidationError(f"Invalid grade: {grade}")
-        except (ValueError, TypeError):
-            raise ValidationError(f"Invalid grade format: {grade}")
+                # This case handles grades outside the defined groups (e.g., 1, 2, 13)
+                return None
+                
+        except Grade.DoesNotExist:
+            return None
+    
+    @staticmethod
+    def calculate_group_from_grade(grade_name):
+        """Calculate group based on grade - improved version"""
+        import re
+        
+        try:
+            # Extract numeric value from grade name
+            grade_number_match = re.search(r'\d+', str(grade_name))
+            if grade_number_match:
+                grade_number = int(grade_number_match.group())
+            else:
+                # Handle word numbers
+                word_to_number = {
+                    'three': 3, 'four': 4, 'five': 5, 'six': 6, 'seven': 7, 
+                    'eight': 8, 'nine': 9, 'ten': 10, 'eleven': 11, 'twelve': 12
+                }
+                grade_lower = str(grade_name).lower()
+                grade_number = None
+                for word, number in word_to_number.items():
+                    if word in grade_lower:
+                        grade_number = number
+                        break
+                
+                if grade_number is None:
+                    raise ValidationError(f"Could not extract grade number from: {grade_name}")
+            
+            # Calculate group
+            if 3 <= grade_number <= 4:
+                return 'A'
+            elif 5 <= grade_number <= 6:
+                return 'B'
+            elif 7 <= grade_number <= 8:
+                return 'C'
+            elif 9 <= grade_number <= 12:
+                return 'D'
+            else:
+                raise ValidationError(f"Grade {grade_number} is not in valid range (3-12)")
+                
+        except (ValueError, TypeError) as e:
+            raise ValidationError(f"Invalid grade format: {grade_name} - {str(e)}")
+    
+    def get_grade_and_group_display(self):
+        """Get a clean display of grade and group without duplication"""
+        if self.grade and self.group:
+            group_display = dict(self.GROUP_CHOICES).get(self.group, '')
+            return f"{self.grade.name} ({group_display})"
+        elif self.grade:
+            return self.grade.name
+        elif self.group:
+            return dict(self.GROUP_CHOICES).get(self.group, '')
+        return "Not specified"
     
     def generate_verification_hash(self):
         """Generate verification hash for payment security"""
@@ -236,22 +274,23 @@ class Student(models.Model):
         received = float(received_amount)
         return abs(expected - received) < 0.01
     
-    def can_register_for_event(self, event):
+    def can_register_for_event(self, event_option):
         """Check if student can register for an event"""
-        if not event.is_active:
+        if not event_option.event.is_active:
             return False, "Event is not active"
-        if event.is_registration_full():
-            return False, "Event registration is full"
-        if self.events.filter(id=event.id).exists():
-            return False, "Already registered for this event"
+
+        # Check if the student is already registered for another option of the same event
+        if StudentEventRegistration.objects.filter(student=self, event_option__event=event_option.event).exists():
+            return False, f"You are already registered for {event_option.event.name}."
+
         return True, "Can register"
     
     def __str__(self):
-        return f"{self.name} - {self.school_college}"
-
+        school_name = self.school_college.name if self.school_college else self.other_school
+        return f"{self.name} - {school_name}"
 
 class Team(models.Model):
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='teams')
+    registration = models.OneToOneField('StudentEventRegistration', on_delete=models.CASCADE, related_name='team')
     name = models.CharField(max_length=200)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -265,19 +304,6 @@ class TeamMember(models.Model):
 
     def __str__(self):
         return f'{self.name} - {self.team.name}'
-
-class StudentEventRegistration(models.Model):
-    student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    event = models.ForeignKey(Event, on_delete=models.CASCADE)
-    team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True)
-    registered_at = models.DateTimeField(auto_now_add=True)
-    registration_ip = models.GenericIPAddressField(null=True, blank=True)
-    
-    class Meta:
-        unique_together = ['student', 'event']
-        indexes = [
-            models.Index(fields=['registered_at']),
-        ]
 
 class Payment(models.Model):
     PAYMENT_STATUS_CHOICES = [
@@ -370,6 +396,19 @@ class Payment(models.Model):
     
     def __str__(self):
         return f"Payment {self.transaction_id} - {self.student.name}"
+
+class StudentEventRegistration(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    event_option = models.ForeignKey(EventOption, on_delete=models.CASCADE)
+    payment = models.ForeignKey(Payment, on_delete=models.SET_NULL, null=True, blank=True)
+    registered_at = models.DateTimeField(auto_now_add=True)
+    registration_ip = models.GenericIPAddressField(null=True, blank=True)
+    
+    class Meta:
+        unique_together = ['student', 'event_option']
+        indexes = [
+            models.Index(fields=['registered_at']),
+        ]
 
 class PaymentAttempt(models.Model):
     """Track payment attempts for security monitoring"""
