@@ -1,0 +1,291 @@
+<!-- templates/registration/check_status.html -->
+{% extends 'base.html' %}
+
+{% block title %}Check Registration Status - JTC 2025{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-gray-800 mb-4">
+            <i class="fas fa-search text-primary mr-2"></i>
+            Check Registration Status
+        </h1>
+        <p class="text-gray-600 text-lg">Enter your email or registration ID to check your payment status</p>
+    </div>
+
+    {% if not found %}
+    <!-- Search Form -->
+    <div class="bg-white rounded-2xl shadow-xl p-8 mb-6">
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address
+                </label>
+                <input type="email" 
+                       name="email" 
+                       id="email"
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                       placeholder="Enter your registered email">
+            </div>
+
+            <div class="text-center text-gray-500">
+                <span class="px-4 py-2 bg-gray-100 rounded-full">OR</span>
+            </div>
+
+            <div>
+                <label for="registration_id" class="block text-sm font-medium text-gray-700 mb-2">
+                    Registration ID
+                </label>
+                <input type="text" 
+                       name="registration_id" 
+                       id="registration_id"
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                       placeholder="e.g., JTC250001">
+            </div>
+
+            <div class="flex justify-center">
+                <button type="submit" 
+                        class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 px-8 rounded-xl text-lg transition-all transform hover:scale-105 shadow-lg">
+                    <i class="fas fa-search mr-2"></i>
+                    Check Status
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Info Box -->
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-6 rounded-r-lg">
+        <h3 class="text-lg font-semibold text-blue-800 mb-2 flex items-center">
+            <i class="fas fa-info-circle mr-2"></i>
+            Why Check Status?
+        </h3>
+        <ul class="text-blue-800 text-sm space-y-1">
+            <li>• Verify if your payment was successful</li>
+            <li>• Check for pending payments that need completion</li>
+            <li>• Get your registration ID if you forgot it</li>
+            <li>• Retry failed or expired payments</li>
+        </ul>
+    </div>
+
+    {% else %}
+    <!-- Status Results -->
+    <div class="space-y-6">
+        <!-- Student Info Card -->
+        <div class="bg-white rounded-2xl shadow-xl p-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Registration Found</h2>
+                {% if student.is_paid %}
+                <span class="px-4 py-2 bg-green-100 text-green-800 rounded-full font-semibold">
+                    <i class="fas fa-check-circle mr-1"></i> Paid
+                </span>
+                {% else %}
+                <span class="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-full font-semibold">
+                    <i class="fas fa-clock mr-1"></i> Payment Pending
+                </span>
+                {% endif %}
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <p class="text-sm text-gray-600">Name</p>
+                    <p class="font-semibold text-gray-800">{{ student.name }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Registration ID</p>
+                    <p class="font-semibold text-green-600 text-lg">{{ student.registration_id }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Email</p>
+                    <p class="font-semibold text-gray-800">{{ student.email }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Mobile</p>
+                    <p class="font-semibold text-gray-800">{{ student.mobile_number }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">School/College</p>
+                    <p class="font-semibold text-gray-800">
+                        {{ student.school_college.name|default:student.other_school }}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Grade</p>
+                    <p class="font-semibold text-gray-800">{{ student.get_grade_and_group_display }}</p>
+                </div>
+            </div>
+
+            <!-- Registered Events -->
+            <h3 class="text-lg font-semibold text-gray-800 mb-3 border-t pt-4">Registered Events</h3>
+            <div class="space-y-2">
+                {% for reg in event_registrations %}
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                        <p class="font-medium text-gray-800">{{ reg.event_option.event.name }}</p>
+                        <p class="text-sm text-gray-600">{{ reg.event_option.name }}</p>
+                        {% if reg.team %}
+                        <p class="text-xs text-blue-600 mt-1">
+                            <i class="fas fa-users mr-1"></i>Team: {{ reg.team.name }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    <div class="text-right">
+                        <p class="font-semibold text-gray-800">৳{{ reg.event_option.fee }}</p>
+                        {% if reg.payment.status == 'SUCCESS' %}
+                        <p class="text-xs text-green-600">
+                            <i class="fas fa-check-circle"></i> Paid
+                        </p>
+                        {% else %}
+                        <p class="text-xs text-yellow-600">
+                            <i class="fas fa-clock"></i> Pending
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Payment Status -->
+        {% if successful_payment %}
+        <!-- Successful Payment -->
+        <div class="bg-green-50 border-2 border-green-500 rounded-2xl p-6">
+            <h3 class="text-xl font-semibold text-green-800 mb-4 flex items-center">
+                <i class="fas fa-check-circle text-2xl mr-2"></i>
+                Payment Completed Successfully
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                    <p class="text-green-700">Transaction ID</p>
+                    <p class="font-semibold text-green-900">{{ successful_payment.transaction_id }}</p>
+                </div>
+                <div>
+                    <p class="text-green-700">Amount Paid</p>
+                    <p class="font-semibold text-green-900">৳{{ successful_payment.amount }}</p>
+                </div>
+                <div>
+                    <p class="text-green-700">Payment Date</p>
+                    <p class="font-semibold text-green-900">{{ successful_payment.completed_at|date:"M d, Y" }}</p>
+                </div>
+            </div>
+            <div class="mt-4">
+                <a href="{% url 'home' %}" 
+                   class="inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition-all">
+                    <i class="fas fa-home mr-2"></i> Back to Home
+                </a>
+            </div>
+        </div>
+
+        {% elif pending_payments %}
+        <!-- Pending Payments -->
+        {% for payment in pending_payments %}
+        <div class="bg-yellow-50 border-2 border-yellow-500 rounded-2xl p-6">
+            <h3 class="text-xl font-semibold text-yellow-800 mb-4 flex items-center">
+                <i class="fas fa-exclamation-triangle text-2xl mr-2"></i>
+                Payment Pending - Action Required
+            </h3>
+            
+            <div class="mb-4">
+                <p class="text-yellow-800 mb-2">
+                    <strong>Transaction ID:</strong> {{ payment.transaction_id }}
+                </p>
+                <p class="text-yellow-800 mb-2">
+                    <strong>Amount:</strong> ৳{{ payment.amount }}
+                </p>
+                <p class="text-yellow-800 mb-4">
+                    <strong>Expires:</strong> {{ payment.expires_at|date:"M d, Y - h:i A" }}
+                </p>
+                
+                {% if payment.is_expired %}
+                <p class="text-red-600 font-semibold mb-4">
+                    <i class="fas fa-clock"></i> This payment session has expired. Please retry.
+                </p>
+                {% else %}
+                <p class="text-yellow-800 mb-4">
+                    <i class="fas fa-hourglass-half"></i> You have <strong>{{ payment.expires_at|timeuntil }}</strong> remaining to complete payment.
+                </p>
+                {% endif %}
+            </div>
+
+            <div class="bg-yellow-100 border-l-4 border-yellow-600 p-4 rounded-r-lg mb-4">
+                <h4 class="font-semibold text-yellow-900 mb-2">
+                    <i class="fas fa-lightbulb mr-2"></i>What to Do:
+                </h4>
+                <ol class="list-decimal list-inside text-yellow-900 text-sm space-y-1">
+                    <li>Click "Complete Payment" button below</li>
+                    <li>You'll be redirected to payment gateway</li>
+                    <li>Complete payment within the time limit</li>
+                    <li>You'll receive email confirmation immediately</li>
+                </ol>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+                {% if payment.is_expired %}
+                <a href="{% url 'retry_payment' payment_id=payment.id %}" 
+                   class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg text-center transition-all">
+                    <i class="fas fa-redo mr-2"></i> Retry Payment
+                </a>
+                {% else %}
+                <a href="{% url 'payment_instructions' payment_id=payment.id %}" 
+                   class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg text-center transition-all">
+                    <i class="fas fa-credit-card mr-2"></i> Complete Payment
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+
+        {% else %}
+        <!-- No Payments Found -->
+        <div class="bg-red-50 border-2 border-red-500 rounded-2xl p-6">
+            <h3 class="text-xl font-semibold text-red-800 mb-3 flex items-center">
+                <i class="fas fa-times-circle text-2xl mr-2"></i>
+                No Payment Record Found
+            </h3>
+            <p class="text-red-800 mb-4">
+                Your registration was created but no payment was initiated. This might happen if:
+            </p>
+            <ul class="list-disc list-inside text-red-800 text-sm space-y-1 mb-4">
+                <li>The payment session expired before initiating</li>
+                <li>There was a technical issue during registration</li>
+                <li>The payment was cancelled</li>
+            </ul>
+            <div class="flex gap-3">
+                <a href="{% url 'register' %}" 
+                   class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all">
+                    <i class="fas fa-user-plus mr-2"></i> Register Again
+                </a>
+                <a href="mailto:jtc@sjis.edu.bd?subject=Payment Issue - {{ student.registration_id }}" 
+                   class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition-all">
+                    <i class="fas fa-envelope mr-2"></i> Contact Support
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Back Button -->
+        <div class="text-center">
+            <a href="{% url 'check_registration_status' %}" 
+               class="inline-block text-blue-600 hover:text-blue-800 font-semibold">
+                <i class="fas fa-arrow-left mr-2"></i> Check Another Registration
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Support Info -->
+    <div class="mt-8 text-center">
+        <p class="text-gray-600 mb-2">Need help?</p>
+        <div class="flex justify-center space-x-4">
+            <a href="mailto:jtc@sjis.edu.bd" class="text-blue-600 hover:text-blue-800">
+                <i class="fas fa-envelope mr-1"></i> jtc@sjis.edu.bd
+            </a>
+            <a href="tel:01704010877" class="text-blue-600 hover:text-blue-800">
+                <i class="fas fa-phone mr-1"></i> 01704010877
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

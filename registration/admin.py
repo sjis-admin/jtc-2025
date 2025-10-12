@@ -78,12 +78,12 @@ class StudentEventRegistrationInline(admin.TabularInline):
 class StudentAdmin(admin.ModelAdmin):
     list_display = [
         'registration_id', 'name', 'school_college', 'grade', 'group', 'email', 
-        'mobile_number', 'total_amount', 'payment_status', 'created_at'
+        'mobile_number', 'reference', 'total_amount', 'payment_status', 'created_at'  # Added 'reference'
     ]
     list_filter = [
         'grade', 'group', 'is_paid', 'payment_verified', 'created_at', 'school_college'
     ]
-    search_fields = ['registration_id', 'name', 'email', 'mobile_number', 'roll', 'school_college']
+    search_fields = ['registration_id', 'name', 'email', 'mobile_number', 'roll', 'school_college', 'reference']  # Added 'reference'
     readonly_fields = ['registration_id', 'group', 'total_amount', 'created_at', 'updated_at']
     ordering = ['-created_at']
     date_hierarchy = 'created_at'
@@ -95,7 +95,7 @@ class StudentAdmin(admin.ModelAdmin):
             'fields': ('name', 'email', 'mobile_number')
         }),
         ('Academic Information', {
-            'fields': ('school_college', 'grade', 'group', 'section', 'roll')
+            'fields': ('school_college', 'grade', 'group', 'section', 'roll', 'reference')  # Added 'reference'
         }),
         ('Registration Details', {
             'fields': ('registration_id', 'total_amount', 'is_paid', 'payment_verified')

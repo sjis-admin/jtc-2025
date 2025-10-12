@@ -1,0 +1,96 @@
+<!-- templates/registration/payment_expired.html -->
+{% extends 'base.html' %}
+
+{% block title %}Payment Session Expired - JTC 2025{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="text-center mb-8">
+        <div class="inline-block p-4 bg-orange-100 rounded-full mb-4">
+            <i class="fas fa-hourglass-end text-orange-500 text-5xl"></i>
+        </div>
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Payment Session Expired</h1>
+        <p class="text-gray-600">Your payment session has timed out after 30 minutes</p>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-lg p-8 mb-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">What Happened?</h2>
+        <p class="text-gray-600 mb-6">
+            For security reasons, payment sessions expire after 30 minutes of inactivity. 
+            Your registration details are saved, but the payment was not completed.
+        </p>
+
+        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg mb-6">
+            <h3 class="font-semibold text-blue-800 mb-2 flex items-center">
+                <i class="fas fa-info-circle mr-2"></i>
+                Good News!
+            </h3>
+            <p class="text-blue-800 text-sm">
+                Your registration information is still saved in our system. You can retry payment 
+                with the same details.
+            </p>
+        </div>
+
+        <h3 class="text-lg font-semibold text-gray-800 mb-3">Your Registration Details:</h3>
+        <div class="bg-gray-50 rounded-lg p-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                    <p class="text-xs text-gray-600">Name</p>
+                    <p class="font-semibold text-gray-800">{{ student.name }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-600">Email</p>
+                    <p class="font-semibold text-gray-800">{{ student.email }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-600">Registration ID</p>
+                    <p class="font-semibold text-green-600">{{ student.registration_id }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-600">Amount</p>
+                    <p class="font-semibold text-gray-800">৳{{ payment.amount }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg mb-6">
+            <h3 class="font-semibold text-yellow-800 mb-2 flex items-center">
+                <i class="fas fa-lightbulb mr-2"></i>
+                How to Complete Payment
+            </h3>
+            <ol class="list-decimal list-inside text-yellow-800 text-sm space-y-1">
+                <li>Click the "Retry Payment" button below</li>
+                <li>You'll be taken to the payment gateway</li>
+                <li>Complete payment within 30 minutes</li>
+                <li>You'll receive confirmation email immediately</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="{% url 'retry_payment' payment_id=payment.id %}" 
+           class="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-bold py-4 px-8 rounded-xl text-lg text-center transition-all transform hover:scale-105 shadow-lg">
+            <i class="fas fa-redo mr-2"></i>
+            Retry Payment
+        </a>
+        
+        <a href="{% url 'register' %}" 
+           class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-4 px-8 rounded-xl text-lg text-center transition-all">
+            <i class="fas fa-user-plus mr-2"></i>
+            Register Again
+        </a>
+    </div>
+
+    <div class="mt-8 text-center">
+        <p class="text-gray-600 mb-2">Need help?</p>
+        <div class="flex justify-center space-x-4">
+            <a href="mailto:jtc@sjis.edu.bd" class="text-blue-600 hover:text-blue-800">
+                <i class="fas fa-envelope mr-1"></i> jtc@sjis.edu.bd
+            </a>
+            <a href="tel:01704010877" class="text-blue-600 hover:text-blue-800">
+                <i class="fas fa-phone mr-1"></i> 01704010877
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

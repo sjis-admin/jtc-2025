@@ -1,0 +1,24 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+<style>
+  #header {
+    background-color: #333;
+    color: #fff;
+  }
+  #site-name a {
+    color: #fff;
+    font-size: 24px;
+    font-weight: bold;
+  }
+</style>
+<div id="site-name"><a href="{% url 'admin:index' %}">Josephite Tech Club</a></div>
+{% if user.is_anonymous %}
+  {% include "admin/color_theme_toggle.html" %}
+{% endif %}
+{% endblock %}
+
+{% block nav-global %}{% endblock %}

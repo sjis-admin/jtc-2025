@@ -1,0 +1,208 @@
+<!-- templates/registration/payment_instructions.html -->
+{% extends 'base.html' %}
+
+{% block title %}Payment Instructions - JTC 2025{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Success Header -->
+    <div class="text-center mb-8">
+        <div class="inline-block p-4 bg-green-100 rounded-full mb-4">
+            <i class="fas fa-check-circle text-green-500 text-5xl"></i>
+        </div>
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Registration Details Saved!</h1>
+        <p class="text-gray-600">Please complete your payment to confirm registration</p>
+    </div>
+
+    <!-- Registration Summary -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-user-circle text-blue-500 mr-2"></i>
+            Registration Summary
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+                <p class="text-sm text-gray-600">Name</p>
+                <p class="font-semibold text-gray-800">{{ student.name }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Email</p>
+                <p class="font-semibold text-gray-800">{{ student.email }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Mobile Number</p>
+                <p class="font-semibold text-gray-800">{{ student.mobile_number }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Registration ID</p>
+                <p class="font-semibold text-gray-800 text-green-600">{{ student.registration_id }}</p>
+            </div>
+        </div>
+
+        <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+            <i class="fas fa-calendar-check text-purple-500 mr-2"></i>
+            Selected Events
+        </h3>
+        
+        <div class="space-y-2 mb-4">
+            {% for reg in event_registrations %}
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                    <p class="font-medium text-gray-800">{{ reg.event_option.event.name }}</p>
+                    <p class="text-sm text-gray-600">{{ reg.event_option.name }}</p>
+                </div>
+                <p class="font-semibold text-gray-800">৳{{ reg.event_option.fee }}</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="border-t pt-4">
+            <div class="flex justify-between items-center">
+                <p class="text-lg font-semibold text-gray-800">Total Amount</p>
+                <p class="text-2xl font-bold text-green-600">৳{{ payment.amount }}</p>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Includes transaction fee</p>
+        </div>
+    </div>
+
+    <!-- Important Instructions -->
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-r-lg mb-6">
+        <h3 class="text-lg font-semibold text-yellow-800 mb-3 flex items-center">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            Important Instructions
+        </h3>
+        <ul class="space-y-2 text-yellow-800">
+            <li class="flex items-start">
+                <i class="fas fa-clock text-yellow-600 mr-2 mt-1"></i>
+                <span><strong>Complete payment within 30 minutes</strong> - Your session will expire after that</span>
+            </li>
+            <li class="flex items-start">
+                <i class="fas fa-mobile-alt text-yellow-600 mr-2 mt-1"></i>
+                <span>You can pay using <strong>bKash, Rocket, Nagad, or Credit/Debit Card</strong></span>
+            </li>
+            <li class="flex items-start">
+                <i class="fas fa-shield-alt text-yellow-600 mr-2 mt-1"></i>
+                <span>Your payment is secured by <strong>SSL Commerz</strong> - Bangladesh's leading payment gateway</span>
+            </li>
+            <li class="flex items-start">
+                <i class="fas fa-receipt text-yellow-600 mr-2 mt-1"></i>
+                <span>After successful payment, you'll receive a <strong>digital receipt with QR code</strong> via email</span>
+            </li>
+            <li class="flex items-start">
+                <i class="fas fa-redo text-yellow-600 mr-2 mt-1"></i>
+                <span>If payment fails, you can <strong>retry with the same registration details</strong></span>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Payment Status Notice -->
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-6 rounded-r-lg mb-6">
+        <h3 class="text-lg font-semibold text-blue-800 mb-2 flex items-center">
+            <i class="fas fa-info-circle mr-2"></i>
+            Payment Status Information
+        </h3>
+        <p class="text-blue-800 text-sm mb-2">
+            Your registration is <strong>NOT CONFIRMED</strong> until payment is completed successfully.
+        </p>
+        <p class="text-blue-800 text-sm">
+            If you encounter any issues during payment, please wait 5 minutes and retry. Your registration details are saved.
+        </p>
+    </div>
+
+    <!-- Timer Display -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 text-center">
+        <p class="text-gray-600 mb-2">Session Expires In</p>
+        <div id="countdown-timer" class="text-4xl font-bold text-red-600 mb-2">
+            <i class="fas fa-hourglass-half"></i> <span id="timer-display">30:00</span>
+        </div>
+        <p class="text-sm text-gray-500">Please complete payment before time expires</p>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="{% url 'payment_gateway' payment_id=payment.id %}" 
+           class="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-bold py-4 px-8 rounded-xl text-lg text-center transition-all transform hover:scale-105 shadow-lg">
+            <i class="fas fa-credit-card mr-2"></i>
+            Proceed to Payment Gateway
+        </a>
+        
+        <a href="{% url 'home' %}" 
+           class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-4 px-8 rounded-xl text-lg text-center transition-all">
+            <i class="fas fa-times mr-2"></i>
+            Cancel
+        </a>
+    </div>
+
+    <!-- Support Information -->
+    <div class="mt-8 text-center">
+        <p class="text-gray-600 mb-2">Need help?</p>
+        <div class="flex justify-center space-x-4">
+            <a href="mailto:jtc@sjis.edu.bd" class="text-blue-600 hover:text-blue-800">
+                <i class="fas fa-envelope mr-1"></i> jtc@sjis.edu.bd
+            </a>
+            <a href="tel:01704010877" class="text-blue-600 hover:text-blue-800">
+                <i class="fas fa-phone mr-1"></i> 01704010877
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Countdown timer
+    const expiresAt = new Date("{{ expires_at|date:'c' }}");
+    const timerDisplay = document.getElementById('timer-display');
+    
+    function updateTimer() {
+        const now = new Date();
+        const timeLeft = expiresAt - now;
+        
+        if (timeLeft <= 0) {
+            timerDisplay.textContent = '00:00';
+            timerDisplay.parentElement.classList.remove('text-red-600');
+            timerDisplay.parentElement.classList.add('text-gray-400');
+            
+            // Show expiration message
+            const warningDiv = document.createElement('div');
+            warningDiv.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            warningDiv.innerHTML = `
+                <div class="bg-white rounded-lg p-8 max-w-md mx-4 text-center">
+                    <i class="fas fa-clock text-red-500 text-5xl mb-4"></i>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">Payment Session Expired</h3>
+                    <p class="text-gray-600 mb-6">Your payment session has expired. Please register again.</p>
+                    <a href="{% url 'register' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg">
+                        Register Again
+                    </a>
+                </div>
+            `;
+            document.body.appendChild(warningDiv);
+            
+            return;
+        }
+        
+        const minutes = Math.floor(timeLeft / 60000);
+        const seconds = Math.floor((timeLeft % 60000) / 1000);
+        
+        timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        
+        // Change color when less than 5 minutes
+        if (minutes < 5) {
+            timerDisplay.parentElement.classList.remove('text-red-600');
+            timerDisplay.parentElement.classList.add('text-orange-600');
+        }
+        
+        // Change color when less than 1 minute
+        if (minutes < 1) {
+            timerDisplay.parentElement.classList.remove('text-orange-600');
+            timerDisplay.parentElement.classList.add('text-red-600');
+            timerDisplay.parentElement.classList.add('animate-pulse');
+        }
+    }
+    
+    // Update timer every second
+    updateTimer();
+    setInterval(updateTimer, 1000);
+});
+</script>
+{% endblock %}

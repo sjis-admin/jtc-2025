@@ -770,7 +770,7 @@ def export_detailed_report_csv():
         'Student Name', 'Registration ID', 'Email', 'Mobile Number', 'School/College',
         'Grade', 'Group', 'Section', 'Roll', 'Amount Paid', 'Payment Method',
         'Transaction ID', 'Payment Date', 'Registered Events', 'Event Details',
-        'Number of Events', 'Individual Events', 'Team Events', 'Team Details'
+        'Number of Events', 'Individual Events', 'Team Events', 'Team Details', 'Reference'
     ])
 
     # Data - Get all paid students with proper relationships
@@ -856,7 +856,8 @@ def export_detailed_report_csv():
             num_events,
             individual_events_str,  # Only individual events
             team_events_str,  # Only team events
-            team_details_str  # Complete team details
+            team_details_str,  # Complete team details
+            student.reference or 'N/A'
         ])
 
     return output.getvalue()
@@ -939,7 +940,7 @@ def export_comprehensive_report_csv():
         'School/College', 'Grade', 'Group', 'Section', 'Roll', 
         'Amount Paid', 'Payment Status', 'Payment Method', 'Transaction ID', 
         'Payment Date', 'All Events', 'Event Details', 'Individual Events', 
-        'Team Events', 'Team Details', 'Registration Date'
+        'Team Events', 'Team Details', 'Registration Date', 'Reference'
     ])
 
     # Get all students (both paid and unpaid)
@@ -1023,7 +1024,8 @@ def export_comprehensive_report_csv():
             individual_events_str,
             team_events_str,
             team_details_str,
-            student.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            student.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            student.reference or 'N/A'
         ])
 
     return output.getvalue()

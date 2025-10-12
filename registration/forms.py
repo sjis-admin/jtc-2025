@@ -7,10 +7,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 class StudentRegistrationForm(forms.ModelForm):
-    # Add hidden field for selected events - FIXED: Make it not required initially
-    selected_events = forms.CharField(widget=forms.HiddenInput(), required=False)
-    
-    # Add other school field
     other_school = forms.CharField(
         max_length=300,
         required=False,
@@ -23,7 +19,7 @@ class StudentRegistrationForm(forms.ModelForm):
     class Meta:
         model = Student
         fields = ['name', 'email', 'mobile_number', 'school_college', 'other_school', 
-                 'grade', 'section', 'roll', 'selected_events']
+                 'grade', 'section', 'roll', 'reference']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
@@ -52,78 +48,68 @@ class StudentRegistrationForm(forms.ModelForm):
                 'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
                 'placeholder': 'Enter your roll number/ID'
             }),
+            'reference': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                'placeholder': "Your Campus Ambassador's name"
+            }),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        # Setup school choices
         schools = School.objects.all().order_by('name')
         school_choices = [('', 'Other (specify below)')]
         school_choices.extend([(school.id, school.name) for school in schools])
         self.fields['school_college'].choices = school_choices
         
-        # Setup grade choices
         grades = Grade.objects.all().order_by('order')
         grade_choices = [('', 'Select your grade')]
         grade_choices.extend([(grade.id, grade.name) for grade in grades])
         self.fields['grade'].choices = grade_choices
 
-    def clean_selected_events(self):
-        """Clean and validate selected events - ULTRA ROBUST VERSION"""
-        selected_events = self.cleaned_data.get('selected_events', '')
+    def clean(self):
+        cleaned_data = super().clean()
         
-        # Debug logging
-        logger.info(f"clean_selected_events called with: '{selected_events}' (type: {type(selected_events)})")
+        # Get selected events directly from POST data
+        selected_events_str = self.data.get('selected_events', '').strip()
         
-        # Handle empty values
-        if not selected_events or selected_events.strip() == '':
-            logger.error("Selected events is empty or None")
-            raise ValidationError("Please select at least one event.")
+        logger.info(f"Form clean() - selected_events: '{selected_events_str}'")
+        
+        if not selected_events_str or selected_events_str == '':
+            logger.error("No events selected in form submission")
+            raise ValidationError({"selected_events": "Please select at least one event."})
         
         try:
-            # Handle various input formats
             event_option_ids = []
+            cleaned_string = selected_events_str.replace('"', '').replace("'", "").strip()
             
-            # Remove any quotes from the string
-            cleaned_string = selected_events.replace('"', '').replace("'", "")
-            
-            # Handle array format like [9] or regular format like 9,10
             if cleaned_string.startswith('[') and cleaned_string.endswith(']'):
                 cleaned_string = cleaned_string.strip('[]')
             
-            # Split by comma and remove empty strings
             id_strings = [id_str.strip() for id_str in cleaned_string.split(',') if id_str.strip()]
             
-            # Convert to integers
             for id_str in id_strings:
                 if id_str.isdigit():
                     event_option_ids.append(int(id_str))
                 else:
-                    logger.warning(f"Non-digit value found in selected_events: {id_str}")
-            
-            logger.info(f"Parsed event option IDs: {event_option_ids}")
+                    logger.warning(f"Non-digit value in selected_events: {id_str}")
             
             if not event_option_ids:
-                logger.error("No valid event option IDs found after parsing")
-                raise ValidationError("Please select at least one event.")
+                raise ValidationError({"selected_events": "Please select at least one event."})
             
-            # Validate that all event options exist and are active
             event_options = EventOption.objects.filter(
                 id__in=event_option_ids, 
                 event__is_active=True
             )
             
             found_ids = list(event_options.values_list('id', flat=True))
-            logger.info(f"Found valid event options with IDs: {found_ids}")
             
             if len(event_options) != len(event_option_ids):
                 missing_ids = set(event_option_ids) - set(found_ids)
-                logger.error(f"Some event options not found or inactive. Missing IDs: {missing_ids}")
-                raise ValidationError("One or more selected events are invalid or inactive.")
+                logger.error(f"Some events not found. Missing IDs: {missing_ids}")
+                raise ValidationError({"selected_events": "One or more selected events are invalid."})
             
-            # Additional validation: Check if student can register for these events based on grade
-            grade = self.cleaned_data.get('grade')
+            grade = cleaned_data.get('grade')
             if grade:
                 invalid_events = []
                 for event_option in event_options:
@@ -131,52 +117,27 @@ class StudentRegistrationForm(forms.ModelForm):
                         invalid_events.append(event_option.event.name)
                 
                 if invalid_events:
-                    logger.error(f"Events not available for grade {grade.name}: {invalid_events}")
-                    raise ValidationError(f"The following events are not available for {grade.name}: {', '.join(invalid_events)}")
+                    raise ValidationError({
+                        "selected_events": f"These events are not available for {grade.name}: {', '.join(invalid_events)}"
+                    })
             
-            logger.info(f"Validation successful for {len(event_options)} event options")
-            return event_options
+            cleaned_data['selected_events'] = event_options
+            logger.info(f"✓ Form validation passed - {len(event_options)} events selected")
             
         except ValueError as e:
-            logger.error(f"ValueError parsing selected_events '{selected_events}': {e}")
-            raise ValidationError("Invalid event selection format.")
-        except Exception as e:
-            logger.error(f"Unexpected error in clean_selected_events: {e}")
-            raise ValidationError("An error occurred validating your event selection.")
-
-    def clean_other_school(self):
-        """Clean other school field"""
-        school_college = self.cleaned_data.get('school_college')
-        other_school = self.cleaned_data.get('other_school', '').strip()
+            logger.error(f"ValueError in form validation: {e}")
+            raise ValidationError({"selected_events": "Invalid event selection format."})
         
-        if not school_college and not other_school:
-            raise ValidationError("Please specify your school/college name.")
-        
-        return other_school
-
-    def clean(self):
-        """Additional form validation with enhanced debugging"""
-        cleaned_data = super().clean()
-        
-        logger.info("=== FORM CLEAN METHOD DEBUG ===")
-        logger.info(f"cleaned_data keys: {list(cleaned_data.keys())}")
-        logger.info(f"selected_events in cleaned_data: {cleaned_data.get('selected_events', 'NOT_FOUND')}")
-        
-        # Validate school selection
+        # Validate school
         school_college = cleaned_data.get('school_college')
         other_school = cleaned_data.get('other_school', '').strip()
         
         if not school_college and not other_school:
-            logger.error("Neither school_college nor other_school provided")
-            raise ValidationError("Please select or specify your school/college.")
+            raise ValidationError({"other_school": "Please select or specify your school/college."})
         
-        # Validate grade selection
-        grade = cleaned_data.get('grade')
-        if not grade:
-            logger.error("No grade selected")
-            raise ValidationError("Please select your grade.")
-        
-        logger.info("=== FORM CLEAN METHOD END ===")
+        # Validate grade
+        if not cleaned_data.get('grade'):
+            raise ValidationError({"grade": "Please select your grade."})
         
         return cleaned_data
 
@@ -225,7 +186,7 @@ class AdminStudentUpdateForm(forms.ModelForm):
     """Form for admin to update student information"""
     class Meta:
         model = Student
-        fields = ['name', 'email', 'mobile_number', 'school_college', 'grade', 'section', 'roll', 'is_paid', 'payment_verified']
+        fields = ['name', 'email', 'mobile_number', 'school_college', 'grade', 'section', 'roll', 'reference', 'is_paid', 'payment_verified']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),

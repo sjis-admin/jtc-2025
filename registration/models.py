@@ -110,7 +110,13 @@ class Student(models.Model):
     group = models.CharField(max_length=1, choices=GROUP_CHOICES, editable=False)
     section = models.CharField(max_length=50, blank=True, null=True, help_text="Only for SJIS students")
     roll = models.CharField(max_length=50, help_text="Unique identification from school")
-    
+    # NEW FIELD - Add this line
+    reference = models.CharField(
+        max_length=200, 
+        blank=True, 
+        null=True,
+        help_text="Campus Ambassador's name"
+    )
     # Contact Information (Encrypted)
     email = models.EmailField()
     mobile_regex = RegexValidator(

@@ -1,4 +1,4 @@
-<!-- templates/registration/register.html - FIXED VERSION -->
+<!-- templates/registration/register.html - PROFESSIONAL VERSION -->
 {% extends 'base.html' %}
 
 {% block title %}Register - Josephite Tech Carnival 2025{% endblock %}
@@ -18,9 +18,11 @@
     <div class="bg-white rounded-2xl shadow-xl p-8">
         <form method="post" class="space-y-6" id="registration-form" action="{% url 'register' %}">
             {% csrf_token %}
-            {{ form.selected_events }}
             
-            <!-- Personal Information Section -->
+            <!-- Hidden field for selected events -->
+            <input type="hidden" name="selected_events" id="id_selected_events" value="">
+            
+            <!-- Personal Information -->
             <div class="border-b border-gray-200 pb-6">
                 <h2 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
                     <i class="fas fa-user text-blue-500 mr-2"></i>
@@ -61,7 +63,7 @@
                 </div>
             </div>
 
-            <!-- Academic Information Section -->
+            <!-- Academic Information -->
             <div class="border-b border-gray-200 pb-6">
                 <h2 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
                     <i class="fas fa-graduation-cap text-green-500 mr-2"></i>
@@ -134,10 +136,23 @@
                             <div class="text-red-500 text-sm mt-1">{{ form.roll.errors.0 }}</div>
                         {% endif %}
                     </div>
+                    
+                    <div>
+                        <label for="id_reference" class="block text-sm font-medium text-gray-700 mb-2">
+                            Reference
+                        </label>
+                        {{ form.reference }}
+                        <p class="mt-1 text-xs text-gray-500">
+                            Your Campus Ambassador's name
+                        </p>
+                        {% if form.reference.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.reference.errors.0 }}</p>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
 
-            <!-- Campus Ambassador Section -->
+            <!-- Campus Ambassador Notice -->
             <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 rounded-r-lg mb-6">
                 <div class="flex">
                     <div class="py-1"><i class="fas fa-bullhorn fa-2x mr-4"></i></div>
@@ -151,11 +166,11 @@
                 </div>
             </div>
 
-            <!-- Event Selection Section -->
+            <!-- Event Selection -->
             <div class="pb-6">
                 <h2 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
                     <i class="fas fa-calendar-check text-purple-500 mr-2"></i>
-                    Event Selection
+                    Event Selection <span class="text-red-500 ml-1">*</span>
                 </h2>
                 
                 <div id="event-list" 
@@ -203,7 +218,8 @@
 
             <!-- Submit Button -->
             <div class="flex justify-center pt-6">
-                <button type="submit" id="submit-button" class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-xl text-lg transition-all transform hover:scale-105 shadow-lg">
+                <button type="submit" id="submit-button" 
+                        class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-xl text-lg transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
                     <i class="fas fa-credit-card mr-2"></i>
                     Proceed to Payment
                 </button>
@@ -220,8 +236,9 @@
         <ul class="text-blue-700 space-y-2">
             <li class="flex items-center"><i class="fas fa-check-circle text-green-500 mr-2"></i>Secure payment via SSL Commerz</li>
             <li class="flex items-center"><i class="fas fa-mobile-alt text-green-500 mr-2"></i>Pay with bKash, Rocket, Nagad, or Card</li>
-            <li class="flex items-center"><i class="fas fa-receipt text-green-500 mr-2"></i>Instant receipt generation</li>
-            <li class="flex items-center"><i class="fas fa-envelope text-green-500 mr-2"></i>Email confirmation</li>
+            <li class="flex items-center"><i class="fas fa-clock text-green-500 mr-2"></i>Complete payment within 30 minutes</li>
+            <li class="flex items-center"><i class="fas fa-receipt text-green-500 mr-2"></i>Instant receipt with QR code</li>
+            <li class="flex items-center"><i class="fas fa-envelope text-green-500 mr-2"></i>Email confirmation sent immediately</li>
         </ul>
     </div>
 </div>
@@ -230,188 +247,377 @@
 
 {% block scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const form = document.getElementById('registration-form');
-        const submitButton = document.getElementById('submit-button');
-        const eventList = document.getElementById('event-list');
-        let validationInProgress = false;
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('registration-form');
+    const submitButton = document.getElementById('submit-button');
+    const eventList = document.getElementById('event-list');
+    let isSubmitting = false;
 
-        function updateSelectedEvents() {
-            const checkboxes = form.querySelectorAll('.event-option-checkbox:checked');
-            const hiddenInput = document.getElementById('id_selected_events');
-            if (hiddenInput) {
-                const selectedIds = Array.from(checkboxes).map(cb => cb.value);
-                hiddenInput.value = selectedIds.join(',');
-                console.log('Updated selected events:', selectedIds);
-                return selectedIds.length > 0;
-            }
+    // Update selected events hidden input
+    function updateSelectedEvents() {
+        const checkboxes = form.querySelectorAll('.event-option-checkbox:checked');
+        const hiddenInput = document.getElementById('id_selected_events');
+        
+        if (!hiddenInput) {
+            console.error('Hidden input not found');
             return false;
         }
 
-        function updateTotal() {
-            if (typeof htmx !== 'undefined') {
-                htmx.ajax('POST', '{% url "calculate_total" %}', {
-                    target: '#total-amount',
-                    swap: 'innerHTML',
-                    source: form
-                });
+        const selectedIds = Array.from(checkboxes).map(cb => cb.value).filter(id => id);
+        hiddenInput.value = selectedIds.join(',');
+        
+        console.log('Selected event IDs:', selectedIds);
+        return selectedIds.length > 0;
+    }
+
+    // Update total amount
+    function updateTotal() {
+        if (typeof htmx !== 'undefined') {
+            htmx.ajax('POST', '{% url "calculate_total" %}', {
+                target: '#total-amount',
+                swap: 'innerHTML',
+                source: form
+            });
+        }
+    }
+
+    // Show/hide team section
+    function showTeamSection(optionId) {
+        const teamDetailsDiv = document.getElementById(`team-details-${optionId}`);
+        if (teamDetailsDiv) {
+            teamDetailsDiv.classList.remove('hidden');
+        }
+    }
+
+    function hideTeamSection(optionId) {
+        const teamDetailsDiv = document.getElementById(`team-details-${optionId}`);
+        if (teamDetailsDiv) {
+            teamDetailsDiv.classList.add('hidden');
+        }
+    }
+
+    // Add team member
+    function addTeamMember(addButton) {
+        const optionId = addButton.dataset.optionId;
+        const maxTeamSize = parseInt(addButton.dataset.maxTeamSize, 10);
+        const container = document.getElementById(`team-members-container-${optionId}`);
+        const teamSizeInfo = document.getElementById(`team-size-info-${optionId}`);
+        const currentMemberCount = container.children.length + 1;
+
+        if (currentMemberCount < maxTeamSize) {
+            const newMemberIndex = container.children.length + 1;
+            const memberNumber = currentMemberCount + 1;
+            const newMemberDiv = document.createElement('div');
+            newMemberDiv.className = 'flex items-center space-x-2 mb-2 team-member-row';
+            newMemberDiv.innerHTML = `
+                <div class="flex items-center flex-grow">
+                    <input type="radio" name="team_leader_${optionId}" value="${newMemberIndex}" class="h-5 w-5 text-blue-600 border-gray-300 rounded-full focus:ring-blue-500">
+                    <input type="text" name="team_member_${optionId}_${newMemberIndex}" class="w-full px-3 py-2 border border-gray-300 rounded-lg ml-2" placeholder="Team Member ${memberNumber} Name" required>
+                </div>
+                <button type="button" class="remove-team-member text-red-500 hover:text-red-700 font-bold text-xl p-1">&times;</button>
+            `;
+            container.appendChild(newMemberDiv);
+            
+            const remaining = maxTeamSize - (currentMemberCount + 1);
+            teamSizeInfo.textContent = remaining > 0 ? `You can add ${remaining} more member(s).` : 'Maximum team size reached.';
+            
+            if (remaining <= 0) {
+                addButton.disabled = true;
             }
         }
+    }
 
-        function showTeamSection(optionId) {
-            const teamDetailsDiv = document.getElementById(`team-details-${optionId}`);
-            if (teamDetailsDiv) teamDetailsDiv.classList.remove('hidden');
-        }
+    // Remove team member
+    function removeTeamMember(removeButton) {
+        const memberRow = removeButton.closest('.team-member-row');
+        const container = memberRow.parentElement;
+        const optionId = container.id.split('-')[3];
+        const addButton = document.querySelector(`.add-team-member[data-option-id='${optionId}']`);
+        const maxTeamSize = parseInt(addButton.dataset.maxTeamSize, 10);
+        const teamSizeInfo = document.getElementById(`team-size-info-${optionId}`);
+        
+        memberRow.remove();
+        
+        const memberRows = container.querySelectorAll('.team-member-row');
+        memberRows.forEach((row, index) => {
+            const newMemberIndex = index + 1;
+            const memberNumber = newMemberIndex + 1;
+            row.querySelector('input[type="text"]').name = `team_member_${optionId}_${newMemberIndex}`;
+            row.querySelector('input[type="text"]').placeholder = `Team Member ${memberNumber} Name`;
+            row.querySelector('input[type="radio"]').value = `${newMemberIndex}`;
+        });
+        
+        const currentMemberCount = container.children.length + 1;
+        const remaining = maxTeamSize - currentMemberCount;
+        teamSizeInfo.textContent = `You can add ${remaining} more member(s).`;
+        addButton.disabled = false;
+    }
 
-        function hideTeamSection(optionId) {
-            const teamDetailsDiv = document.getElementById(`team-details-${optionId}`);
-            if (teamDetailsDiv) teamDetailsDiv.classList.add('hidden');
-        }
-
-        function addTeamMember(addButton) {
-            const optionId = addButton.dataset.optionId;
-            const maxTeamSize = parseInt(addButton.dataset.maxTeamSize, 10);
-            const container = document.getElementById(`team-members-container-${optionId}`);
-            const teamSizeInfo = document.getElementById(`team-size-info-${optionId}`);
-            const currentMemberCount = container.children.length + 1;
-
-            if (currentMemberCount < maxTeamSize) {
-                const newMemberIndex = container.children.length + 1;
-                const memberNumber = currentMemberCount + 1;
-                const newMemberDiv = document.createElement('div');
-                newMemberDiv.className = 'flex items-center space-x-2 mb-2 team-member-row';
-                newMemberDiv.innerHTML = `
-                    <div class="flex items-center flex-grow">
-                        <input type="radio" name="team_leader_${optionId}" value="${newMemberIndex}" class="h-5 w-5 text-blue-600 border-gray-300 rounded-full focus:ring-blue-500">
-                        <input type="text" name="team_member_${optionId}_${newMemberIndex}" class="w-full px-3 py-2 border border-gray-300 rounded-lg ml-2" placeholder="Team Member ${memberNumber} Name" required>
-                    </div>
-                    <button type="button" class="remove-team-member text-red-500 hover:text-red-700 font-bold text-xl p-1">&times;</button>
-                `;
-                container.appendChild(newMemberDiv);
-                const remaining = maxTeamSize - (currentMemberCount + 1);
-                teamSizeInfo.textContent = remaining > 0 ? `You can add ${remaining} more member(s).` : 'Maximum team size reached.';
-                if (remaining <= 0) addButton.disabled = true;
-            }
-        }
-
-        function removeTeamMember(removeButton) {
-            const memberRow = removeButton.closest('.team-member-row');
-            const container = memberRow.parentElement;
-            const optionId = container.id.split('-')[3];
-            const addButton = document.querySelector(`.add-team-member[data-option-id='${optionId}']`);
-            const maxTeamSize = parseInt(addButton.dataset.maxTeamSize, 10);
-            const teamSizeInfo = document.getElementById(`team-size-info-${optionId}`);
-            memberRow.remove();
-            const memberRows = container.querySelectorAll('.team-member-row');
-            memberRows.forEach((row, index) => {
-                const newMemberIndex = index + 1;
-                const memberNumber = newMemberIndex + 1;
-                row.querySelector('input[type="text"]').name = `team_member_${optionId}_${newMemberIndex}`;
-                row.querySelector('input[type="text"]').placeholder = `Team Member ${memberNumber} Name`;
-                row.querySelector('input[type="radio"]').value = `${newMemberIndex}`;
-            });
-            const currentMemberCount = container.children.length + 1;
-            const remaining = maxTeamSize - currentMemberCount;
-            teamSizeInfo.textContent = `You can add ${remaining} more member(s).`;
-            addButton.disabled = false;
-        }
-
-        if (eventList) {
-            eventList.addEventListener('change', function(e) {
-                if (e.target.matches('.event-option-checkbox')) {
-                    const checkbox = e.target;
-                    const eventId = checkbox.dataset.eventId;
-                    const optionType = checkbox.dataset.optionType;
-
-                    if (checkbox.checked) {
-                        eventList.querySelectorAll(`.event-option-checkbox[data-event-id="${eventId}"]`).forEach(cb => {
-                            if (cb !== checkbox) {
-                                if (cb.checked && cb.dataset.optionType === 'TEAM') hideTeamSection(cb.value);
-                                cb.checked = false;
-                            }
-                        });
-                    }
-
-                    if (optionType === 'TEAM') {
-                        if (checkbox.checked) showTeamSection(checkbox.value);
-                        else hideTeamSection(checkbox.value);
-                    }
-
-                    updateSelectedEvents();
-                    updateTotal();
-                }
-            });
-
-            eventList.addEventListener('click', function(e) {
-                if (e.target.matches('.add-team-member')) {
-                    addTeamMember(e.target);
-                } else if (e.target.matches('.remove-team-member')) {
-                    removeTeamMember(e.target);
-                }
-            });
-        }
-
-        if (form) {
-            form.addEventListener('submit', function (e) {
-                if (validationInProgress) {
-                    return; // Allow form submission if validation already passed
-                }
-
-                e.preventDefault(); // Prevent initial submission
-
-                console.log('Form submission started');
-
-                // Update selected events
-                const hasEvents = updateSelectedEvents();
-                console.log('Has events selected:', hasEvents);
-
-                if (!hasEvents) {
-                    alert('Please select at least one event.');
-                    return;
-                }
-
-                // Validate team events
-                const teamCheckboxes = form.querySelectorAll('.event-option-checkbox:checked[data-option-type="TEAM"]');
-                for (const checkbox of teamCheckboxes) {
-                    const optionId = checkbox.value;
-                    const teamNameInput = form.querySelector(`input[name="team_name_${optionId}"]`);
-                    if (!teamNameInput || !teamNameInput.value.trim()) {
-                        const eventName = checkbox.closest('.event-section').querySelector('h3').textContent.trim();
-                        alert(`Please enter a team name for the event: "${eventName}".`);
-                        if (teamNameInput) teamNameInput.focus();
-                        return;
-                    }
-                }
-
-                // All validations passed
-                validationInProgress = true;
-                
-                if (submitButton) {
-                    submitButton.disabled = true;
-                    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
-                }
-                
-                console.log('Submitting form');
-                form.submit();
-            });
-        }
-
-        function initializeSchoolLogic() {
-            const schoolDropdown = document.getElementById('id_school_college');
-            const otherSchoolDiv = document.getElementById('other_school_div');
-            if (schoolDropdown && otherSchoolDiv) {
-                const otherSchoolInput = otherSchoolDiv.querySelector('input[name="other_school"]');
-                const toggle = () => {
-                    const isOther = schoolDropdown.value === '';
-                    otherSchoolDiv.style.display = isOther ? 'block' : 'none';
-                    if(otherSchoolInput) otherSchoolInput.required = isOther;
+    // Validate team events
+    function validateTeamEvents() {
+        const teamCheckboxes = form.querySelectorAll('.event-option-checkbox:checked[data-option-type="TEAM"]');
+        
+        for (const checkbox of teamCheckboxes) {
+            const optionId = checkbox.value;
+            const eventSection = checkbox.closest('.event-section');
+            if (!eventSection) continue;
+            
+            const eventNameEl = eventSection.querySelector('h3');
+            const eventName = eventNameEl ? eventNameEl.textContent.trim() : 'this event';
+            
+            const teamNameInput = form.querySelector(`input[name="team_name_${optionId}"]`);
+            if (!teamNameInput || !teamNameInput.value.trim()) {
+                return {
+                    valid: false,
+                    message: `Please enter a team name for "${eventName}"`
                 };
-                schoolDropdown.addEventListener('change', toggle);
-                toggle();
+            }
+            
+            const leaderRadios = form.querySelectorAll(`input[name="team_leader_${optionId}"]`);
+            const hasLeader = Array.from(leaderRadios).some(radio => radio.checked);
+            
+            if (!hasLeader) {
+                return {
+                    valid: false,
+                    message: `Please select a team leader for "${eventName}"`
+                };
             }
         }
-        initializeSchoolLogic();
+        
+        return { valid: true };
+    }
 
-    });
+    // Show toast notification
+    function showToast(message, type = 'error') {
+        const existingToast = document.querySelector('.toast-notification');
+        if (existingToast) {
+            existingToast.remove();
+        }
+
+        const colors = {
+            error: 'bg-red-500',
+            success: 'bg-green-500',
+            warning: 'bg-yellow-500',
+            info: 'bg-blue-500'
+        };
+
+        const icons = {
+            error: 'fa-exclamation-circle',
+            success: 'fa-check-circle',
+            warning: 'fa-exclamation-triangle',
+            info: 'fa-info-circle'
+        };
+
+        const toast = document.createElement('div');
+        toast.className = `toast-notification fixed top-20 left-1/2 transform -translate-x-1/2 ${colors[type]} text-white px-6 py-4 rounded-lg shadow-2xl z-50 flex items-center space-x-3 max-w-md`;
+        toast.innerHTML = `
+            <i class="fas ${icons[type]} text-2xl"></i>
+            <div>
+                <div class="font-bold">${type === 'error' ? 'Validation Error' : 'Notice'}</div>
+                <div class="text-sm">${message}</div>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.animation = 'slideUp 0.3s ease-out';
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+
+    // Event list changes
+    if (eventList) {
+        eventList.addEventListener('change', function(e) {
+            if (e.target.matches('.event-option-checkbox')) {
+                const checkbox = e.target;
+                const eventId = checkbox.dataset.eventId;
+                const optionType = checkbox.dataset.optionType;
+
+                if (checkbox.checked) {
+                    eventList.querySelectorAll(`.event-option-checkbox[data-event-id="${eventId}"]`).forEach(cb => {
+                        if (cb !== checkbox) {
+                            if (cb.checked && cb.dataset.optionType === 'TEAM') {
+                                hideTeamSection(cb.value);
+                            }
+                            cb.checked = false;
+                        }
+                    });
+                }
+
+                if (optionType === 'TEAM') {
+                    if (checkbox.checked) {
+                        showTeamSection(checkbox.value);
+                    } else {
+                        hideTeamSection(checkbox.value);
+                    }
+                }
+
+                updateSelectedEvents();
+                updateTotal();
+            }
+        });
+
+        eventList.addEventListener('click', function(e) {
+            if (e.target.matches('.add-team-member')) {
+                addTeamMember(e.target);
+            } else if (e.target.matches('.remove-team-member')) {
+                removeTeamMember(e.target);
+            }
+        });
+    }
+
+    // Form submission with enhanced validation
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (isSubmitting) {
+                console.log('Form already submitting...');
+                return false;
+            }
+
+            console.log('=== FORM VALIDATION STARTED ===');
+
+            // Disable submit button immediately
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Validating...';
+
+            // Step 1: Update selected events
+            const hasEvents = updateSelectedEvents();
+            
+            if (!hasEvents) {
+                console.error('No events selected');
+                showToast('Please select at least one event to continue');
+                submitButton.disabled = false;
+                submitButton.innerHTML = '<i class="fas fa-credit-card mr-2"></i> Proceed to Payment';
+                return false;
+            }
+            console.log('✓ Events selected: PASSED');
+
+            // Step 2: Validate team events
+            const teamValidation = validateTeamEvents();
+            if (!teamValidation.valid) {
+                console.error('Team validation failed:', teamValidation.message);
+                showToast(teamValidation.message);
+                submitButton.disabled = false;
+                submitButton.innerHTML = '<i class="fas fa-credit-card mr-2"></i> Proceed to Payment';
+                return false;
+            }
+            console.log('✓ Team validation: PASSED');
+
+            // Step 3: Validate grade selection
+            const gradeSelect = document.getElementById('id_grade');
+            if (!gradeSelect || !gradeSelect.value) {
+                console.error('No grade selected');
+                showToast('Please select your grade');
+                submitButton.disabled = false;
+                submitButton.innerHTML = '<i class="fas fa-credit-card mr-2"></i> Proceed to Payment';
+                return false;
+            }
+            console.log('✓ Grade selected: PASSED');
+
+            // Step 4: Validate required fields
+            const requiredFields = ['name', 'email', 'mobile_number', 'roll'];
+            for (const fieldName of requiredFields) {
+                const field = form.querySelector(`[name="${fieldName}"]`);
+                if (!field || !field.value.trim()) {
+                    console.error(`Required field missing: ${fieldName}`);
+                    showToast(`Please fill in your ${fieldName.replace('_', ' ')}`);
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = '<i class="fas fa-credit-card mr-2"></i> Proceed to Payment';
+                    return false;
+                }
+            }
+            console.log('✓ Required fields: PASSED');
+
+            // Step 5: Validate school selection
+            const schoolSelect = form.querySelector('[name="school_college"]');
+            const otherSchoolInput = form.querySelector('[name="other_school"]');
+            if ((!schoolSelect || !schoolSelect.value) && (!otherSchoolInput || !otherSchoolInput.value.trim())) {
+                console.error('No school selected');
+                showToast('Please select or specify your school/college');
+                submitButton.disabled = false;
+                submitButton.innerHTML = '<i class="fas fa-credit-card mr-2"></i> Proceed to Payment';
+                return false;
+            }
+            console.log('✓ School selected: PASSED');
+
+            // ALL VALIDATIONS PASSED
+            console.log('✅ ALL VALIDATIONS PASSED - SUBMITTING FORM');
+            
+            isSubmitting = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+
+            // Show processing message
+            showToast('Processing your registration... Please wait.', 'info');
+
+            // Submit form after brief delay
+            setTimeout(() => {
+                console.log('🚀 Submitting form now...');
+                form.submit();
+            }, 500);
+
+            return false;
+        });
+    }
+
+    // School selection logic
+    function initializeSchoolLogic() {
+        const schoolDropdown = document.getElementById('id_school_college');
+        const otherSchoolDiv = document.getElementById('other_school_div');
+        
+        if (schoolDropdown && otherSchoolDiv) {
+            const otherSchoolInput = otherSchoolDiv.querySelector('input[name="other_school"]');
+            
+            const toggle = () => {
+                const isOther = schoolDropdown.value === '';
+                otherSchoolDiv.style.display = isOther ? 'block' : 'none';
+                if (otherSchoolInput) {
+                    otherSchoolInput.required = isOther;
+                }
+            };
+            
+            schoolDropdown.addEventListener('change', toggle);
+            toggle();
+        }
+    }
+
+    initializeSchoolLogic();
+
+    console.log('✅ Registration form initialized successfully');
+});
+
+// CSS animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideDown {
+        from {
+            transform: translate(-50%, -100%);
+            opacity: 0;
+        }
+        to {
+            transform: translate(-50%, 0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideUp {
+        from {
+            transform: translate(-50%, 0);
+            opacity: 1;
+        }
+        to {
+            transform: translate(-50%, -100%);
+            opacity: 0;
+        }
+    }
+    
+    .toast-notification {
+        animation: slideDown 0.3s ease-out;
+    }
+`;
+document.head.appendChild(style);
 </script>
 {% endblock %}

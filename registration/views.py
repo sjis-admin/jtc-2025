@@ -100,14 +100,19 @@ def home(request):
         return render(request, 'registration/home.html', {'events': [], 'stats': {}, 'countdown': None})
 
 def student_registration(request):
+    """Enhanced registration with proper duplicate and edge case handling"""
     ip_address = get_client_ip(request)
+    
     if request.method == 'POST':
         form = StudentRegistrationForm(request.POST)
+        
+        logger.info(f"Registration attempt from IP: {ip_address}")
+        
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    # --- Step 1: Get or Create Student ---
-                    student, _ = Student.objects.update_or_create(
+                    # Get or create student
+                    student, created = Student.objects.select_for_update().get_or_create(
                         email=form.cleaned_data['email'],
                         defaults={
                             'name': form.cleaned_data['name'],
@@ -116,69 +121,294 @@ def student_registration(request):
                             'grade': form.cleaned_data['grade'],
                             'section': form.cleaned_data.get('section'),
                             'roll': form.cleaned_data['roll'],
+                            'reference': form.cleaned_data.get('reference'),
                             'mobile_number': form.cleaned_data['mobile_number'],
                             'registration_ip': ip_address,
                         }
                     )
 
+                    # Check for existing SUCCESSFUL payment
+                    if student.is_paid and student.payment_verified:
+                        logger.warning(f"Student {student.email} already has completed registration")
+                        messages.warning(
+                            request,
+                            f'You have already completed registration with ID: {student.registration_id}. '
+                            'Please check your email for the receipt. If you need to register for additional events, '
+                            'please contact support at jtc@sjis.edu.bd'
+                        )
+                        return redirect('home')
+
+                    # Check for existing pending payment (valid session)
+                    existing_pending = Payment.objects.filter(
+                        student=student,
+                        status='PENDING',
+                        expires_at__gt=timezone.now()
+                    ).first()
+                    
+                    if existing_pending:
+                        # Resume existing payment session
+                        logger.info(f"Resuming payment session {existing_pending.transaction_id}")
+                        messages.info(
+                            request, 
+                            'You have a pending payment session. Redirecting you to complete it...'
+                        )
+                        return redirect('payment_instructions', payment_id=existing_pending.id)
+
                     event_options = form.cleaned_data['selected_events']
                     
-                    # --- Step 2: Create a PENDING Payment object ---
-                    subtotal = sum(o.fee for o in event_options)
+                    if not event_options or len(event_options) == 0:
+                        raise ValueError("Please select at least one event to continue.")
+                    
+                    logger.info(f"Processing registration for {student.name} with {len(event_options)} events")
+                    
+                    # ENHANCED: Check which events are already registered
+                    already_registered_events = []
+                    new_events = []
+                    
+                    for option in event_options:
+                        existing_reg = StudentEventRegistration.objects.filter(
+                            student=student,
+                            event_option__event=option.event
+                        ).first()
+                        
+                        if existing_reg:
+                            # Check if previous registration was successful
+                            if existing_reg.payment and existing_reg.payment.status == 'SUCCESS':
+                                already_registered_events.append(option.event.name)
+                            else:
+                                # Previous registration was incomplete, allow re-registration
+                                logger.info(f"Replacing incomplete registration for {option.event.name}")
+                                existing_reg.delete()  # Remove incomplete registration
+                                new_events.append(option)
+                        else:
+                            new_events.append(option)
+                    
+                    # If all events are already registered
+                    if already_registered_events and not new_events:
+                        event_list = ', '.join(already_registered_events)
+                        logger.warning(f"All selected events already registered for {student.email}")
+                        messages.warning(
+                            request,
+                            f'You are already registered for: {event_list}. '
+                            f'Please check your email for confirmation or contact support.'
+                        )
+                        return redirect('home')
+                    
+                    # If some events are already registered, warn user
+                    if already_registered_events:
+                        event_list = ', '.join(already_registered_events)
+                        messages.warning(
+                            request,
+                            f'Note: You are already registered for {event_list}. '
+                            f'Proceeding with new event registration only.'
+                        )
+                    
+                    # Use only new events for payment
+                    events_to_register = new_events if new_events else event_options
+                    
+                    if not events_to_register:
+                        raise ValueError("No valid events to register for.")
+                    
+                    # Calculate amounts
+                    subtotal = sum(o.fee for o in events_to_register)
                     fee_percentage = Decimal(getattr(settings, 'SSLCOMMERZ_FEE_PERCENTAGE', '0.015'))
                     fee = (subtotal * fee_percentage).quantize(Decimal('0.01'))
                     total_amount = subtotal + fee
 
                     if total_amount <= 0:
-                        messages.error(request, "You must select at least one event with a fee.")
-                        return redirect('register')
+                        raise ValueError("Total amount must be greater than zero.")
 
+                    # Create payment with extended expiration
                     payment = Payment.objects.create(
                         student=student,
                         amount=total_amount,
                         client_ip=ip_address,
-                        transaction_id=generate_secure_transaction_id() # Ensure this function exists and is imported
+                        transaction_id=generate_secure_transaction_id(),
+                        expires_at=timezone.now() + timezone.timedelta(minutes=30)
                     )
-                    payment.save()
+                    
+                    logger.info(f"Payment created: {payment.transaction_id} for ৳{total_amount}")
 
-                    # --- Step 3: Create Event Registrations linked to the Payment ---
-                    for option in event_options:
+                    # Create event registrations
+                    registration_count = 0
+                    for option in events_to_register:
                         reg = StudentEventRegistration.objects.create(
                             student=student,
                             event_option=option,
                             payment=payment,
                             registration_ip=ip_address
                         )
-                        # --- Handle Team Creation ---
+                        registration_count += 1
+                        
+                        logger.info(f"Event registration: {option.event.name} - {option.name}")
+                        
+                        # Handle team creation
                         if option.event_type == 'TEAM':
                             team_name = request.POST.get(f'team_name_{option.id}', '').strip()
                             if not team_name:
-                                raise ValueError(f"Team name is required for {option.event.name}")
+                                raise ValueError(f"Team name required for {option.event.name}")
                             
                             team = Team.objects.create(name=team_name, registration=reg)
                             leader_index = request.POST.get(f'team_leader_{option.id}', '0')
                             
-                            TeamMember.objects.create(team=team, name=student.name, is_leader=(leader_index == '0'))
+                            # Add team members
+                            TeamMember.objects.create(
+                                team=team, 
+                                name=student.name, 
+                                is_leader=(leader_index == '0')
+                            )
                             
                             for i in range(1, option.max_team_size or 2):
                                 member_name = request.POST.get(f'team_member_{option.id}_{i}', '').strip()
                                 if member_name:
-                                    TeamMember.objects.create(team=team, name=member_name, is_leader=(leader_index == str(i)))
+                                    TeamMember.objects.create(
+                                        team=team, 
+                                        name=member_name, 
+                                        is_leader=(leader_index == str(i))
+                                    )
+                            
+                            logger.info(f"Team {team_name} created")
+                    
+                    if registration_count == 0:
+                        raise ValueError("No new event registrations created.")
+                    
+                    logger.info(f"Successfully created {registration_count} registrations")
 
-                # --- Step 4: Redirect to Payment Gateway ---
-                return redirect('payment_gateway', payment_id=payment.id)
+                # Store payment ID in session
+                request.session['pending_payment_id'] = payment.id
+                request.session['payment_initiated_at'] = timezone.now().isoformat()
+                
+                # Success message
+                messages.success(
+                    request,
+                    f'Registration details saved! Registration ID: {student.registration_id}. '
+                    f'Please complete payment within 30 minutes.'
+                )
+                
+                # Redirect to payment instructions
+                return redirect('payment_instructions', payment_id=payment.id)
 
+            except ValueError as ve:
+                logger.error(f'Validation error: {ve}')
+                messages.error(request, str(ve))
+                return render(request, 'registration/register.html', {'form': form})
+            
             except Exception as e:
-                logger.error(f'Error during registration processing: {e}', exc_info=True)
-                messages.error(request, f'An unexpected error occurred: {e}')
+                logger.error(f'Registration error: {e}', exc_info=True)
+                messages.error(
+                    request, 
+                    'An unexpected error occurred. Please try again or contact support at jtc@sjis.edu.bd'
+                )
                 return render(request, 'registration/register.html', {'form': form})
         else:
             logger.error(f"Form validation failed: {form.errors}")
-            messages.error(request, 'Please correct the errors below.')
+            
+            if 'selected_events' in form.errors:
+                messages.error(request, 'Please select at least one event.')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+            
+            # Log all errors for debugging
+            for field, errors in form.errors.items():
+                logger.error(f"Field '{field}' errors: {errors}")
+            
+            return render(request, 'registration/register.html', {'form': form})
     else:
+        # GET request - show form
         form = StudentRegistrationForm()
 
     return render(request, 'registration/register.html', {'form': form})
+
+
+def check_registration_status(request):
+    """
+    NEW VIEW: Allow users to check their registration status
+    Accessible via URL: /check-status/
+    """
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip()
+        registration_id = request.POST.get('registration_id', '').strip()
+        
+        if not email and not registration_id:
+            messages.error(request, 'Please provide either email or registration ID.')
+            return render(request, 'registration/check_status.html')
+        
+        try:
+            # Find student by email or registration ID
+            if registration_id:
+                student = Student.objects.get(registration_id=registration_id, is_deleted=False)
+            else:
+                student = Student.objects.get(email=email, is_deleted=False)
+            
+            # Get all payments
+            payments = student.payments.all().order_by('-created_at')
+            
+            # Get successful payment
+            successful_payment = payments.filter(status='SUCCESS').first()
+            
+            # Get pending payments
+            pending_payments = payments.filter(
+                status='PENDING',
+                expires_at__gt=timezone.now()
+            )
+            
+            # Get event registrations
+            event_registrations = StudentEventRegistration.objects.filter(
+                student=student
+            ).select_related('event_option__event', 'payment')
+            
+            context = {
+                'student': student,
+                'successful_payment': successful_payment,
+                'pending_payments': pending_payments,
+                'event_registrations': event_registrations,
+                'found': True,
+            }
+            
+            return render(request, 'registration/check_status.html', context)
+            
+        except Student.DoesNotExist:
+            messages.error(request, 'No registration found with the provided details.')
+            return render(request, 'registration/check_status.html')
+        except Exception as e:
+            logger.error(f'Error checking status: {e}')
+            messages.error(request, 'An error occurred. Please try again.')
+            return render(request, 'registration/check_status.html')
+    
+    return render(request, 'registration/check_status.html')
+
+def payment_instructions(request, payment_id):
+    """NEW: Show payment instructions before redirecting to gateway"""
+    try:
+        payment = get_object_or_404(Payment, id=payment_id, status='PENDING')
+        student = payment.student
+        
+        # Check if payment has expired
+        if payment.is_expired():
+            payment.status = 'EXPIRED'
+            payment.save()
+            messages.warning(request, 'This payment session has expired. Please register again.')
+            return redirect('register')
+        
+        # Get registered events
+        event_registrations = StudentEventRegistration.objects.filter(
+            student=student,
+            payment=payment
+        ).select_related('event_option__event')
+        
+        context = {
+            'payment': payment,
+            'student': student,
+            'event_registrations': event_registrations,
+            'expires_at': payment.expires_at,
+        }
+        
+        return render(request, 'registration/payment_instructions.html', context)
+        
+    except Payment.DoesNotExist:
+        messages.error(request, "Invalid payment session.")
+        return redirect('register')
+
 
 
 # Updated get_events_for_grade view in views.py
@@ -401,11 +631,20 @@ def get_team_section(request):
 
 
 def payment_gateway(request, payment_id):
+    """Enhanced payment gateway with better error handling"""
     try:
         payment = get_object_or_404(Payment, id=payment_id, status='PENDING')
+        
+        # Verify payment hasn't expired
+        if payment.is_expired():
+            payment.status = 'EXPIRED'
+            payment.save()
+            messages.error(request, 'Payment session expired. Please start a new registration.')
+            return redirect('payment_expired', payment_id=payment.id)
+        
         student = payment.student
-
         sslcommerz = SSLCOMMERZ()
+        
         response_data = sslcommerz.create_session(
             amount=payment.amount,
             tran_id=payment.transaction_id,
@@ -413,7 +652,7 @@ def payment_gateway(request, payment_id):
             cust_email=student.email,
             cust_phone=student.mobile_number,
             payment_id=payment.id,
-            cus_add1=student.school_college.name if student.school_college else student.other_school,
+            cus_add1=student.school_college.name if student.school_college else student.other_school or 'Dhaka',
             cus_city='Dhaka',
             cus_state='Dhaka',
             cus_postcode='1000',
@@ -423,37 +662,108 @@ def payment_gateway(request, payment_id):
         if response_data.get('status') == 'SUCCESS':
             payment.sessionkey = response_data.get('sessionkey', '')
             payment.save()
+            
+            logger.info(f"Payment gateway session created: {payment.transaction_id}")
             return redirect(response_data.get('GatewayPageURL'))
         else:
-            raise ValueError(response_data.get('failedreason', 'Gateway initialization failed.'))
+            error_reason = response_data.get('failedreason', 'Gateway initialization failed')
+            logger.error(f"Gateway init failed: {error_reason}")
+            messages.error(request, f'Payment gateway error: {error_reason}')
+            return redirect('payment_failed_init', payment_id=payment.id)
 
     except Payment.DoesNotExist:
-        messages.error(request, "This payment session is invalid or has expired.")
+        messages.error(request, "Invalid or expired payment session.")
         return redirect('register')
     except Exception as e:
-        logger.error(f'Payment gateway error for payment {payment_id}: {e}', exc_info=True)
-        messages.error(request, f'Could not initiate payment: {e}')
+        logger.error(f'Payment gateway error: {e}', exc_info=True)
+        messages.error(request, 'Could not connect to payment gateway. Please try again.')
         return redirect('register')
+
+
+def payment_expired(request, payment_id):
+    """NEW: Handle expired payment sessions"""
+    try:
+        payment = get_object_or_404(Payment, id=payment_id)
+        student = payment.student
+        
+        context = {
+            'payment': payment,
+            'student': student,
+        }
+        
+        return render(request, 'registration/payment_expired.html', context)
+        
+    except Payment.DoesNotExist:
+        return redirect('register')
+
+
+def payment_failed_init(request, payment_id):
+    """NEW: Handle payment gateway initialization failures"""
+    try:
+        payment = get_object_or_404(Payment, id=payment_id)
+        student = payment.student
+        
+        context = {
+            'payment': payment,
+            'student': student,
+        }
+        
+        return render(request, 'registration/payment_failed_init.html', context)
+        
+    except Payment.DoesNotExist:
+        return redirect('register')
+
+
+def retry_payment(request, payment_id):
+    """NEW: Allow users to retry failed payments"""
+    try:
+        payment = get_object_or_404(Payment, id=payment_id)
+        
+        # Only allow retry for failed or expired payments
+        if payment.status not in ['FAILED', 'EXPIRED', 'CANCELLED']:
+            messages.info(request, 'This payment cannot be retried.')
+            return redirect('home')
+        
+        # Check if payment is too old (more than 24 hours)
+        if (timezone.now() - payment.created_at).total_seconds() > 86400:
+            messages.error(request, 'This payment session is too old. Please register again.')
+            return redirect('register')
+        
+        # Reset payment status
+        payment.status = 'PENDING'
+        payment.expires_at = timezone.now() + timezone.timedelta(minutes=30)
+        payment.save()
+        
+        logger.info(f"Payment retry initiated: {payment.transaction_id}")
+        messages.info(request, 'Retrying payment... Please complete within 30 minutes.')
+        
+        return redirect('payment_instructions', payment_id=payment.id)
+        
+    except Payment.DoesNotExist:
+        messages.error(request, "Payment session not found.")
+        return redirect('register')
+
 
 @csrf_exempt
 def payment_success(request):
+    """Enhanced success handler with better user feedback"""
     post_data = request.POST
     tran_id = post_data.get('tran_id')
 
     if not tran_id:
+        logger.error("Payment success callback without transaction ID")
         return HttpResponseBadRequest("Invalid request: Missing transaction ID.")
 
     try:
         payment = Payment.objects.get(transaction_id=tran_id)
     except Payment.DoesNotExist:
-        logger.error(f"Payment success callback for non-existent transaction: {tran_id}")
+        logger.error(f"Payment success for non-existent transaction: {tran_id}")
         return HttpResponseBadRequest("Invalid Transaction.")
 
+    # Already processed
     if payment.status == 'SUCCESS':
-        messages.info(request, "This payment has already been processed.")
-        receipt = Receipt.objects.get(payment=payment)
+        receipt = Receipt.objects.filter(payment=payment).first()
         
-        # Get event registrations with proper event names
         event_registrations = StudentEventRegistration.objects.filter(
             student=payment.student,
             payment=payment
@@ -464,9 +774,11 @@ def payment_success(request):
             'payment': payment,
             'receipt': receipt,
             'event_registrations': event_registrations,
+            'already_processed': True,
         }
         return render(request, 'registration/payment_success.html', context)
 
+    # Validate with SSLCommerz
     sslcz = SSLCOMMERZ()
     is_valid, validation_data = sslcz.validate_ipn(post_data)
 
@@ -486,9 +798,18 @@ def payment_success(request):
                 student.save()
 
                 receipt = Receipt.objects.create(student=student, payment=payment)
-                send_registration_email(student, receipt)
+                
+                # Clear session
+                if 'pending_payment_id' in request.session:
+                    del request.session['pending_payment_id']
+                
+                # Send email asynchronously
+                from .views import send_registration_email
+                try:
+                    send_registration_email(student, receipt)
+                except Exception as e:
+                    logger.error(f"Failed to send email: {e}")
 
-            # Get event registrations with proper event names
             event_registrations = StudentEventRegistration.objects.filter(
                 student=student,
                 payment=payment
@@ -499,19 +820,20 @@ def payment_success(request):
                 'payment': payment,
                 'receipt': receipt,
                 'event_registrations': event_registrations,
+                'already_processed': False,
             }
 
-            messages.success(request, "Registration and payment successful!")
+            logger.info(f"Payment successful: {tran_id}")
             return render(request, 'registration/payment_success.html', context)
         else:
             payment.status = 'FAILED'
             payment.save()
-            logger.error(f"Payment validation failed for {tran_id}: Amount mismatch.")
+            logger.error(f"Amount mismatch for {tran_id}")
             return HttpResponseBadRequest("Payment validation failed: Amount mismatch.")
     else:
         payment.status = 'FAILED'
         payment.save()
-        logger.error(f"Payment validation failed for {tran_id}: Invalid data from SSLCommerz.")
+        logger.error(f"Invalid payment data for {tran_id}")
         return HttpResponseBadRequest("Payment validation failed.")
 
 @staff_member_required
